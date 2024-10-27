@@ -1,0 +1,31 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+	  {
+		"name": "Debug RayJam",
+		"type": "cppvsdbg",
+		"request": "launch",
+		"program": "${workspaceFolder}/x64/Debug/RayJam.exe",
+		"args": [],
+		"stopAtEntry": false,
+		"cwd": "${workspaceFolder}",
+		"environment": [],
+		"externalConsole": false,
+		"preLaunchTask": "build-debug",
+		"internalConsoleOptions": "openOnSessionStart"
+	  },
+	  {
+		"name": "Release RayJam",
+		"type": "cppvsdbg",
+		"request": "launch",
+		"program": "${workspaceFolder}/x64/Release/RayJam.exe",
+		"args": [],
+		"stopAtEntry": false,
+		"cwd": "${workspaceFolder}",
+		"environment": [],
+		"externalConsole": false,
+		"preLaunchTask": "build-release",
+		"internalConsoleOptions": "openOnSessionStart"
+	  }
+	]
+}

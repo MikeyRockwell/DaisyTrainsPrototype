@@ -1,0 +1,42 @@
+{
+	"version": "2.0.0",
+	"tasks":
+	[
+		{
+			"label": "build-debug",
+			"type": "shell",
+			"command": "msbuild",
+			"args":
+			[
+				"RayJam.sln",
+				"/p:Configuration=Debug",
+				"/p:Platform=x64",
+				"/verbosity:minimal",
+			],
+			"group":
+			{
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": ["$msCompile"]
+		},
+		{
+			"label": "build-release",
+			"type": "shell",
+			"command": "msbuild",
+			"args":
+			[
+				"RayJam.sln",
+				"/p:Configuration=Release",
+				"/p:Platform=x64",
+				"/verbosity:minimal",
+			],
+			"group":
+			{
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": ["$msCompile"]
+		},
+	]
+}
