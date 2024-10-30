@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Engine.h"
-#include <unordered_map>
+#include "Camera.h"
 #include <string>
 #include <bitset>
 
@@ -20,6 +20,8 @@ namespace Grid
         bool mouseOver = false;
         bool selected  = false;
         bool clockwise = true;
+        bool hasMine   = false;
+        bool hasStation = false;
     };
 
     struct Grid
@@ -27,8 +29,8 @@ namespace Grid
         i32 width  = 32;
         i32 height = 32;
         i32 cellSize = 32;
-        std::unordered_map
-            <Vector2Int, Cell, Vector2IntHash, Vector2IntEqual> cells;
+        std::unordered_map<Vector2Int, Cell, Vector2IntHash, Vector2IntEqual> cells;
+        Textures::Sprite groundSprite;
 
         inline Cell* GetCellAtWorldPosition(Vector2 worldPosition)
         {
@@ -65,7 +67,7 @@ namespace Grid
             }
         }
 
-        inline void Draw()
+        inline void Draw(GameCamera::Camera& camera)
         {
             for (int y = 0; y < height; y++)
             {
@@ -81,21 +83,28 @@ namespace Grid
                         (float)cellSize
                     };
 
+                    DrawTexturePro
+                    (
+                        *groundSprite.texture,
+                        groundSprite.source,
+                        rectangle,
+                        { 0,0 },
+                        0.0f,
+                        WHITE
+                    );
+                    //DrawRectangleRec(rectangle, PALETTE_BLACK);
+                    //DrawRectangleLinesEx(rectangle, 0.5f / camera.rlCamera.zoom, PALETTE_LIGHT_GREEN);
+
                     //Color color = cell->mouseOver ? SKYBLUE : GRAY;
-                    DrawRectangleRec(rectangle, GRAY);
-                    DrawRectangleLinesEx(rectangle, 0.5f, BLACK);
                     
-                    if (cell->clockwise)
+                    /*if (cell->clockwise)
                     {
                         DrawText("C", x * cellSize, y * cellSize, 10, BLACK);
                     }
                     else
                     {
                         DrawText("CC", x * cellSize, y * cellSize, 10, BLACK);
-                    }
-
-            
-
+                    }*/
 
                     // Coord debug
                     //std::string strX = std::to_string(coordinate.x);
@@ -113,6 +122,17 @@ namespace Grid
         grid.width = width;
         grid.height = height;
         grid.cellSize = cellSize;
+        
+        Texture2D* texture = Textures::Load("res/sprites/floor_tile.png");
+        grid.groundSprite = Textures::CreateSprite
+        (
+            texture, 
+            { 0,0,CELL_SIZE,CELL_SIZE }, 
+            { CELL_SIZE / 2, CELL_SIZE / 2 }, 
+            0.0f, 
+            1.0f, 
+            WHITE
+        );
 
         for (int y = 0; y < grid.height; y++)
         {

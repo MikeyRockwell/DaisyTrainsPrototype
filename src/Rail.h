@@ -4,10 +4,9 @@
 
 #include "Grid.h"
 #include "UI.h"
+#include "Trains.h"
 
-#include <map>
-#include <algorithm>
-#include <cmath>
+
 
 namespace Rail
 {
@@ -33,15 +32,12 @@ namespace Rail
         BOTTOM_TO_LEFT  =  5,
     };
 
-
-
     struct UIButton
     {
         RailType type;
         Rectangle bounds;
         Color color;
         bool hovered;
-        //bool clicked;
     };
 
     struct Rail
@@ -50,11 +46,13 @@ namespace Rail
         Vector2 start;
         Vector2 end;
         Vector2Int coordinate;
+
+        std::vector<Trains::Train*> trainsOnRail;
     };
 
     struct RailState
     {
-        std::vector<Rail> rails;
+        std::unordered_map<Vector2Int, Rail, Vector2IntHash, Vector2IntEqual> coordinateToRailMap;
     };
     extern RailState railState;
 
@@ -72,6 +70,7 @@ namespace Rail
 
     void Init  (Grid::Grid& grid);
     void Update(Grid::Grid& grid);
+    void Draw(Grid::Grid& grid);
     void DrawUI(Grid::Grid& grid);
 
     inline Vector2 GetCellConnectionPoint(Grid::Cell* cell, ConnectionPoint point)
@@ -198,6 +197,27 @@ namespace Rail
         if (closestPoint.x == eastPoint.x && closestPoint.y == eastPoint.y) return EAST;
         if (closestPoint.x == southPoint.x && closestPoint.y == southPoint.y) return SOUTH;
         if (closestPoint.x == westPoint.x && closestPoint.y == westPoint.y) return WEST;
+    }
+
+    inline void AddTrainToRailState(Trains::Train& train)
+    {
+        railState.coordinateToRailMap[train.currentCell->coordinate].trainsOnRail.emplace_back(&train);
+    }
+
+    inline void RemoveTrainFromRailState(Trains::Train& train)
+    {
+        Rail& rail = railState.coordinateToRailMap[train.currentCell->coordinate];
+
+        for (int i = 0; i < rail.trainsOnRail.size(); i++)
+        {
+            if (rail.trainsOnRail[i] == &train)
+            {
+                rail.trainsOnRail.erase(rail.trainsOnRail.begin() + i);
+                return;
+            }
+        }
+        std::cout << "Error: RemoveTrainFromRailState" << std::endl;
+
     }
 
     Vector2 GetNextDestinationPoint(Grid::Cell* cell);

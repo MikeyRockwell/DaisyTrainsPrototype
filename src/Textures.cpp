@@ -8,8 +8,8 @@ namespace Textures
 Texture2D* Textures::Load(const char* path)
 {
     Texture2D texture = LoadTexture(path);
-    state.textures.push_back(texture);
-    return &state.textures.back();
+    state.textures[state.textureCount++] = texture;
+    return &state.textures[state.textureCount-1];
 }
 
 Textures::Sprite Textures::CreateSprite(Texture* texture, Rectangle source, Vector2 origin, float rotation, float scale, Color tint)
@@ -33,5 +33,4 @@ void Textures::Clean()
     {
         UnloadTexture(texture);
     }
-    state.textures.clear();
 }

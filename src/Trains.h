@@ -6,6 +6,8 @@
 
 namespace Trains
 {
+    const i32 MAX_TRAINS = 10000;
+
     enum Direction
     {
         UP,
@@ -23,16 +25,18 @@ namespace Trains
         Grid::Cell* currentCell;
         Grid::Cell* nextCell;
 
-        std::bitset<4> direction;
-
         float speed;
         float acceleration;
         float maxSpeed;
         float rotation;
         float distanceToNextCell;
         float distanceTravelled;
+        float tValue;
 
-        Color color = RAYWHITE;
+        bool loaded = false;
+
+        Color cargoColor;
+        i32   cargoCount;
     };
 
     struct UIButton
@@ -45,7 +49,9 @@ namespace Trains
     struct State
     {
         Vector2 trainPlacementPosition;
-        std::vector<Train> trains;
+        i32 trainCount = 0;
+        Train trains[MAX_TRAINS];
+        Textures::Sprite trainSprite;
     };
     extern State state;
 
@@ -53,61 +59,4 @@ namespace Trains
     void Update(Grid::Grid& grid);
     void Draw  (Grid::Grid& grid);
 
-    inline void EnterCell(Train& train, Grid::Cell* cell)
-    {
-    }
-
-    inline void SetDirectionRight(Train& train)
-    {
-        train.direction.reset();
-        train.direction.set(Direction::RIGHT);
-    }
-    
-    inline void SetDirectionLeft(Train& train)
-    {
-        train.direction.reset();
-        train.direction.set(Direction::LEFT);
-    }
-
-    inline void SetDirectionUp(Train& train)
-    {
-        train.direction.reset();
-        train.direction.set(Direction::UP);
-    }
-
-    inline void SetDirectionDown(Train& train)
-    {
-        train.direction.reset();
-        train.direction.set(Direction::DOWN);
-    }
-
-    inline void SetDirectionUpAndRight(Train& train)
-    {
-        train.direction.reset();
-        train.direction.set(Direction::UP);
-        train.direction.set(Direction::RIGHT);
-    }
-
-    inline void SetDirectionUpAndLeft(Train& train)
-    {
-        train.direction.reset();
-        train.direction.set(Direction::UP);
-        train.direction.set(Direction::LEFT);
-    }
-
-    inline void SetDirectionDownAndRight(Train& train)
-    {
-        train.direction.reset();
-        train.direction.set(Direction::DOWN);
-        train.direction.set(Direction::RIGHT);
-    }
-
-    inline void SetDirectionDownAndLeft(Train& train)
-    {
-        train.direction.reset();
-        train.direction.set(Direction::DOWN);
-        train.direction.set(Direction::LEFT);
-    }
-
-    
 }

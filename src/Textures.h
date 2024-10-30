@@ -4,6 +4,8 @@
 
 namespace Textures
 {
+    const int MAX_TEXTURES = 32;
+
     struct Sprite
     {
         Texture2D* texture;
@@ -16,7 +18,8 @@ namespace Textures
 
     struct State
     {
-        std::vector<Texture2D> textures;
+        i32 textureCount = 0;
+        Texture2D textures[MAX_TEXTURES];
     };
     extern State state;
 

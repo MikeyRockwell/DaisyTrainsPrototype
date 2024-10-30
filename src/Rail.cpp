@@ -2,6 +2,8 @@
 #include "Trains.h"
 
 #include <iostream>
+#include "Mines.h"
+#include "Game.h"
 
 namespace Rail
 {
@@ -69,7 +71,8 @@ namespace Rail
 
     void Update(Grid::Grid& grid)
     {
-        Vector2 mousePosition = GetMousePosition();
+        Vector2 mousePosition = Game::state.mouseWorldPosition;
+        Vector2 mouseScreenPosition = GetMousePosition();
         Grid::Cell* cell = grid.GetCellAtWorldPosition(mousePosition);
         
         Vector2 cellCenter = { cell->worldPosition.x + grid.cellSize / 2, cell->worldPosition.y + grid.cellSize / 2 };
@@ -124,7 +127,11 @@ namespace Rail
         =========================================================*/
         if (IsMouseButtonDown(0))
         {
-            if (uiState.selectedType != RailType::NONE && cell->railType == -1)
+            if 
+            (
+                uiState.selectedType != RailType::NONE && 
+                cell->railType == -1 && 
+                Mines::IsRailCompatible(cell))
             {
                 Rail rail;
                 rail.type = uiState.selectedType;
@@ -132,7 +139,7 @@ namespace Rail
                 rail.end   = uiState.selectedRail.end;
                 rail.coordinate = cell->coordinate;
                 cell->clockwise = uiState.clockwise;
-                railState.rails.push_back(rail);
+                railState.coordinateToRailMap[cell->coordinate] = rail;
                 SetConnectionPoints(cell, flags);
             }
         }
@@ -163,13 +170,7 @@ namespace Rail
                 cell->connectionPositions[0] = { -1,-1 };
                 cell->connectionPositions[1] = { -1,-1 };
                 // Remove the rail from the rail state
-                for (int i = 0; i < railState.rails.size(); i++)
-                {
-                    if (railState.rails[i].coordinate.x == cell->coordinate.x && railState.rails[i].coordinate.y == cell->coordinate.y)
-                    {
-                        railState.rails.erase(railState.rails.begin() + i);
-                    }
-                }
+                railState.coordinateToRailMap.erase(cell->coordinate);
             }
         }
 
@@ -189,7 +190,7 @@ namespace Rail
         /*=========================================================
             UPDATE UI BUTTONS
         =========================================================*/
-        for (int i = 0; i < RAIL_TYPES; i++)
+        /*for (int i = 0; i < RAIL_TYPES; i++)
         {
             if (CheckCollisionPointRec(mousePosition, uiState.buttons[i].bounds))
             {
@@ -212,19 +213,33 @@ namespace Rail
             {
                 uiState.buttons[i].hovered = false;
             }
-        }
+        }*/
     }
 
-    void DrawUI(Grid::Grid& grid)
-    {   
+    void Draw(Grid::Grid& grid)
+    {
         // DRAW THE RAIL SEGMENT AT THE MOUSE POSITION
-        Vector2 mousePosition = GetMousePosition();
-        Grid::Cell* cell = grid.GetCellAtWorldPosition(mousePosition);
+        Vector2 mouseWorldPosition = Game::state.mouseWorldPosition;
+        
+        Grid::Cell* cell = grid.GetCellAtWorldPosition(mouseWorldPosition);
 
         // DRAW THE RAIL GHOST
         if (uiState.selectedType != RailType::NONE)
         {
             Color ghostColor = cell->railType != -1 ? RED : SKYBLUE;
+
+            if (cell->hasMine || cell->hasStation)
+            {
+                if (!Mines::IsRailCompatible(cell))
+                {
+                    ghostColor = RED;
+                }
+                else
+                {
+                    ghostColor = GREEN;
+                }
+            }
+
             Rectangle bounds =
             {
                 cell->worldPosition.x,
@@ -256,15 +271,14 @@ namespace Rail
                     ghostColor
                 );
             }
-           
-            DrawRectanglePro(bounds, {0,0}, 0, Fade(ghostColor, 0.5f));
+
+            DrawRectanglePro(bounds, { 0,0 }, 0, Fade(ghostColor, 0.5f));
         }
 
         // DRAW THE RAILS
-        for (int i = 0; i < railState.rails.size(); i++)
+        for (auto& [coordinate, rail] : railState.coordinateToRailMap)
         {
-            Rail* rail = &railState.rails[i];
-            Grid::Cell* cell = grid.CoordinateToCell(rail->coordinate);
+            Grid::Cell* cell = grid.CoordinateToCell(rail.coordinate);
             Rectangle destination =
             {
                 cell->worldPosition.x,
@@ -277,27 +291,35 @@ namespace Rail
             {
                 DrawTexturePro
                 (
-                    *uiState.railSpritesClockwise[rail->type].texture,
-                    uiState.railSpritesClockwise[rail->type].source,
+                    *uiState.railSpritesClockwise[rail.type].texture,
+                    uiState.railSpritesClockwise[rail.type].source,
                     destination,
                     { 0,0 },
                     0.0f,
-                    uiState.railSpritesClockwise[rail->type].tint
+                    uiState.railSpritesClockwise[rail.type].tint
                 );
             }
             else
             {
                 DrawTexturePro
                 (
-                    *uiState.railSpritesCounterClockwise[rail->type].texture,
-                    uiState.railSpritesCounterClockwise[rail->type].source,
+                    *uiState.railSpritesCounterClockwise[rail.type].texture,
+                    uiState.railSpritesCounterClockwise[rail.type].source,
                     destination,
                     { 0,0 },
                     0.0f,
-                    uiState.railSpritesCounterClockwise[rail->type].tint
+                    uiState.railSpritesCounterClockwise[rail.type].tint
                 );
             }
+
+            // DEBUG
+            DrawText(std::to_string(rail.trainsOnRail.size()).c_str(), cell->worldPosition.x, cell->worldPosition.y, 10, WHITE);
         }
+
+        // DEBUG
+
+        std::string mouseCoordinate = std::to_string(cell->coordinate.x) + "," + std::to_string(cell->coordinate.y);
+        DrawTextEx(GetFontDefault(), mouseCoordinate.c_str(), { mouseWorldPosition.x - 20, mouseWorldPosition.y - 20 }, 20, 0, ORANGE);
 
         if (cell->connectionPositions[0].x != -1)
         {
@@ -307,7 +329,10 @@ namespace Rail
         {
             DrawCircleV(cell->connectionPositions[1], 5, RED);
         }
-        
+    }
+
+    void DrawUI(Grid::Grid& grid)
+    {   
         // DRAW THE UI BUTTONS
         for (int i = 0; i < RAIL_TYPES; i++)
         {
@@ -337,8 +362,8 @@ namespace Rail
         }
 
         // DRAW CLOCKWISE INDICATOR DEBUG
-        const char* clockwise = uiState.clockwise ? "C" : "CC";
-        DrawText(clockwise, 10, 10, 20, uiState.clockwise ? GREEN : RED);
+        /*const char* clockwise = uiState.clockwise ? "C" : "CC";
+        DrawText(clockwise, 10, 10, 20, uiState.clockwise ? GREEN : RED);*/
     }
 
     Vector2 GetNextDestinationPoint(Grid::Cell* cell)

@@ -143,18 +143,24 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\Camera.cpp" />
+    <ClCompile Include="src\Game.cpp" />
     <ClCompile Include="src\Grid.cpp" />
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\Mines.cpp" />
     <ClCompile Include="src\Rail.cpp" />
     <ClCompile Include="src\Textures.cpp" />
     <ClCompile Include="src\Trains.cpp" />
     <ClCompile Include="src\UI.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Camera.h" />
     <ClInclude Include="src\Curves.h" />
     <ClInclude Include="src\Definitions.h" />
     <ClInclude Include="src\Engine.h" />
+    <ClInclude Include="src\Game.h" />
     <ClInclude Include="src\Grid.h" />
+    <ClInclude Include="src\Mines.h" />
     <ClInclude Include="src\Rail.h" />
     <ClInclude Include="src\Textures.h" />
     <ClInclude Include="src\Trains.h" />

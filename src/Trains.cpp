@@ -1,10 +1,12 @@
-#include "Trains.h"
-#include "Rail.h"
 #include "Curves.h"
+#include "Game.h"
+#include "Rail.h"
+#include "Trains.h"
 
 #include <string>
 #include <iostream>
 #include <cassert>
+#include "Mines.h"
 
 namespace Trains
 {
@@ -12,7 +14,18 @@ namespace Trains
 
 	void Init()
 	{
-
+        Texture* texture = Textures::Load("res/sprites/train.png");
+        i32 width = texture->width;
+        i32 height = texture->height;
+        state.trainSprite = Textures::CreateSprite
+        (
+            texture,
+            { 0,0, (float)width, (float)height },
+            { (float)width / 2, (float)height / 2 },
+            0.0f,
+            1.0f,
+            WHITE
+        );
 	}
 
 	void Update(Grid::Grid& grid)
@@ -30,7 +43,7 @@ namespace Trains
 		{
 			Rail::uiState.selectedType = Rail::RailType::NONE;
             
-            Vector2 mousePosition = GetMousePosition();
+            Vector2 mousePosition = Game::state.mouseWorldPosition;
             Grid::Cell* cell = grid.GetCellAtWorldPosition(mousePosition);
 
             if (cell->railType != -1)
@@ -45,7 +58,7 @@ namespace Trains
                     train.nextCell = nullptr;
                     train.speed = 0.0f;
                     train.acceleration = 10.0f;
-                    train.maxSpeed = 170.0f;
+                    train.maxSpeed = 370.0f;
                     train.rotation = 0.0f;
 
                     train.entryPosition  = train.worldPosition;
@@ -57,14 +70,44 @@ namespace Trains
                     }
                     train.distanceTravelled = 0.0f;
                     train.nextCell = Rail::GetNextCell(&grid, cell);
-                    train.color = { (u8)GetRandomValue(0, 255), (u8)GetRandomValue(0, 255), (u8)GetRandomValue(0, 255), 255 };
-                    state.trains.push_back(train);
+
+
+                    state.trains[state.trainCount++] = train;
+
+                    // ADD TRAIN TO RAIL STATE
+                    Rail::AddTrainToRailState(state.trains[state.trainCount-1]);
                 }
             }
 		}
 
-        for (Train& train : state.trains)
+        for (int i = 0; i < state.trainCount; i++)
         {
+            Train& train = state.trains[i];
+            // LOADING TRAIN
+            if (train.currentCell->hasMine && !train.loaded)
+            {
+                Mines::Mine* mine = &Mines::state.mines[train.currentCell->coordinate];
+                if (mine->count > 0)
+                {
+                    i32 amount = 1;
+                    mine->count -= amount;
+                    train.loaded = true;
+                    train.cargoColor = mine->color;
+                    train.cargoCount = amount;
+                }
+            }
+
+            // UNLOADING TRAIN
+            if (train.currentCell->hasStation && train.loaded)
+            {
+                Mines::Station* station = &Mines::state.stations[train.currentCell->coordinate];
+                Game::state.currency += train.cargoCount;
+                
+                train.loaded = false;
+                train.cargoCount = 0;
+                station->color = train.cargoColor;
+            }
+
             // Calculate the center of the current cell
             Vector2 cellCenter = {
                 train.currentCell->worldPosition.x + grid.cellSize / 2.0f,
@@ -73,7 +116,11 @@ namespace Trains
 
             // Update the distance travelled
             train.distanceTravelled += train.speed * GetFrameTime();
-            float t = train.distanceTravelled / train.distanceToNextCell;
+            train.tValue = train.distanceTravelled / train.distanceToNextCell;
+            if (train.tValue > 1.0f)
+            {
+                train.tValue = 1.0f;
+            }
 
             // Offset the midpoint to create a control point for the curve
             Vector2 direction = Vector2Subtract(train.targetPosition, train.entryPosition);
@@ -83,7 +130,8 @@ namespace Trains
             float offset = 1.0f; // Adjust this value to control the curvature
             Vector2 controlPoint = Vector2Add(cellCenter, Vector2Scale(perpendicular, offset));
 
-            Vector2 nextPosition = BezierQuadratic(train.entryPosition, controlPoint, train.targetPosition, t);
+            //Vector2 nextPosition = BezierQuadratic(train.entryPosition, controlPoint, train.targetPosition, t);
+            Vector2 nextPosition = GetSplinePointBezierQuad(train.entryPosition, controlPoint, train.targetPosition, train.tValue);
 
             Vector2 facingDirection = Vector2Subtract(nextPosition, train.worldPosition);
             facingDirection = Vector2Scale(Vector2Normalize(facingDirection), 100.0f);
@@ -92,14 +140,48 @@ namespace Trains
             train.rotation = atan2(facingDirection.y, facingDirection.x) * RAD2DEG;
             train.speed += train.acceleration * GetFrameTime();
 
+            Rail::Rail& currentRail = Rail::railState.coordinateToRailMap[train.currentCell->coordinate];
+            if (currentRail.trainsOnRail.size() > 1)
+            {
+                i32 trainIndex = -1;
+
+                for (int j = 0; j < currentRail.trainsOnRail.size(); j++)
+                {
+                    if (currentRail.trainsOnRail[j] == &train)
+                    {
+                        trainIndex = j;
+                        break;
+                    }
+                }
+
+                if (trainIndex != -1 && trainIndex != 0)
+                {
+                    Train* trainInFront = currentRail.trainsOnRail[trainIndex - 1];
+                    if (train.tValue < trainInFront->tValue)
+                    {
+                        train.speed = Clamp(train.speed, 0.0f, trainInFront->speed);
+                        if (Vector2Distance(train.worldPosition, trainInFront->worldPosition) < 10.0f)
+                        {
+                            train.tValue = trainInFront->tValue - 0.333f;
+                        }
+                    }
+                }
+            }
+
+            train.tValue = Clamp(train.tValue, 0.0f, 1.0f);
+
             if (train.speed > train.maxSpeed) train.speed = train.maxSpeed;
 
-            if (Vector2Distance(train.worldPosition, train.targetPosition) < 1.0f)
+            if (train.tValue == 1.0f) // We have reached the next cell
             {
-                // We have reached the next cell
                 if (train.nextCell->railType != -1) // Does this cell have rail
                 {
+                    // REMOVE TRAIN FROM CURRENT RAIL STATE
+                    Rail::RemoveTrainFromRailState(train);
+
                     train.currentCell   = train.nextCell;
+                    Rail::AddTrainToRailState(train);
+
                     train.worldPosition = train.targetPosition;
                     train.entryPosition = train.worldPosition;
                     // Get the next rail piece
@@ -132,7 +214,25 @@ namespace Trains
 		}
         for (Train& train : state.trains)
         {
-            DrawPoly(train.worldPosition, 3, 12, train.rotation, train.color);
+            Color color = train.loaded ? train.cargoColor : WHITE;
+            Rectangle destination =
+            {
+                train.worldPosition.x,
+                train.worldPosition.y,
+                state.trainSprite.texture->width,
+                state.trainSprite.texture->height
+            };
+            DrawTexturePro
+            (
+                *state.trainSprite.texture,
+                state.trainSprite.source,
+                destination,
+                { state.trainSprite.origin.x, state.trainSprite.origin.y },
+                train.rotation,
+                color
+            );
+
+            //DrawPoly(train.worldPosition, 3, 12, train.rotation, color);
             //DrawCircleV(train.targetPosition, 5, GREEN);
             //DrawCircleV(train.entryPosition, 5, YELLOW);
             //DrawCircleV(train.controlPoint, 5, MAGENTA);
