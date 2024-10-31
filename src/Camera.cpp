@@ -2,13 +2,15 @@
 
 void GameCamera::Update(Camera& camera)
 {
-    if (IsKeyPressed(KEY_Q))
+    if (IsKeyDown(KEY_Q) && camera.zoomTarget != MIN_ZOOM)
     {
         camera.zoomTarget -= ZOOM_INCREMENT;
+        camera.target = Vector2Lerp(camera.target, GetWorldMousePosition(camera), 0.25f);
     }
-    if (IsKeyPressed(KEY_E))
+    if (IsKeyDown(KEY_E) && camera.zoomTarget != MAX_ZOOM)
     {
         camera.zoomTarget += ZOOM_INCREMENT;
+        camera.target = Vector2Lerp(camera.target, GetWorldMousePosition(camera), 0.25f);
     }
     if (camera.zoomTarget < MIN_ZOOM)
     {

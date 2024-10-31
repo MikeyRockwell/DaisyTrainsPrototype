@@ -6,7 +6,8 @@
 
 namespace Trains
 {
-    const i32 MAX_TRAINS = 10000;
+    const i32 MAX_TRAINS = 64;
+    const i32 MAX_CARS = 64;
 
     enum Direction
     {
@@ -16,27 +17,54 @@ namespace Trains
         RIGHT
     };
 
-    struct Train
+    enum Type
     {
+        ENGINE,
+        CAR
+    };
+
+    struct TrainEngine;
+
+    struct TrainTransform
+    {
+        Type type;
+
         Vector2 worldPosition;
         Vector2 entryPosition;
         Vector2 targetPosition;
+        Vector2 direction;
 
         Grid::Cell* currentCell;
         Grid::Cell* nextCell;
 
         float speed;
-        float acceleration;
-        float maxSpeed;
         float rotation;
         float distanceToNextCell;
         float distanceTravelled;
         float tValue;
+    };
+
+    struct Car
+    {
+        i32 index = -1;
+
+        CargoType cargoType;
+        
+        TrainTransform transform;
 
         bool loaded = false;
+    };
 
-        Color cargoColor;
-        i32   cargoCount;
+    // The trail engine
+    struct TrainEngine
+    {
+        TrainTransform transform;
+
+        float acceleration;
+        float maxSpeed;
+       
+        i32 carCount = 1;
+        Car cars[MAX_CARS];
     };
 
     struct UIButton
@@ -50,13 +78,18 @@ namespace Trains
     {
         Vector2 trainPlacementPosition;
         i32 trainCount = 0;
-        Train trains[MAX_TRAINS];
+        TrainEngine trains[MAX_TRAINS];
+
         Textures::Sprite trainSprite;
+        Textures::Sprite carSprite;
     };
     extern State state;
 
     void Init  ();
-    void Update(Grid::Grid& grid);
-    void Draw  (Grid::Grid& grid);
+    void Update             (i32 level);
+    void UpdateTransform    (i32 level, TrainEngine& engine, TrainTransform& transform);
+    void UpdateCarTransform (i32 level, Car& car, TrainTransform& parentTransform, float speed);
+    void EnterCell          (TrainTransform& transform);
+    void Draw               (i32 level);
 
 }

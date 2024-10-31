@@ -47,7 +47,7 @@ namespace Rail
         Vector2 end;
         Vector2Int coordinate;
 
-        std::vector<Trains::Train*> trainsOnRail;
+        //std::vector<Trains::TrainTransform*> trainsOnRail;
     };
 
     struct RailState
@@ -68,10 +68,10 @@ namespace Rail
     };
     extern UIState uiState;
 
-    void Init  (Grid::Grid& grid);
-    void Update(Grid::Grid& grid);
-    void Draw(Grid::Grid& grid);
-    void DrawUI(Grid::Grid& grid);
+    void Init  ();
+    void Update();
+    void Draw();
+    void DrawUI();
 
     inline Vector2 GetCellConnectionPoint(Grid::Cell* cell, ConnectionPoint point)
     {
@@ -199,12 +199,12 @@ namespace Rail
         if (closestPoint.x == westPoint.x && closestPoint.y == westPoint.y) return WEST;
     }
 
-    inline void AddTrainToRailState(Trains::Train& train)
+  /*  inline void AddTrainToRailState(Trains::TrainEngine& train)
     {
         railState.coordinateToRailMap[train.currentCell->coordinate].trainsOnRail.emplace_back(&train);
     }
 
-    inline void RemoveTrainFromRailState(Trains::Train& train)
+    inline void RemoveTrainFromRailState(Trains::TrainEngine& train)
     {
         Rail& rail = railState.coordinateToRailMap[train.currentCell->coordinate];
 
@@ -218,8 +218,8 @@ namespace Rail
         }
         std::cout << "Error: RemoveTrainFromRailState" << std::endl;
 
-    }
+    }*/
 
     Vector2 GetNextDestinationPoint(Grid::Cell* cell);
-    Grid::Cell* GetNextCell(Grid::Grid* grid, Grid::Cell* cell);
+    Grid::Cell* GetNextCell(Grid::Cell* cell);
 }

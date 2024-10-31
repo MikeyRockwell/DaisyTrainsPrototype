@@ -9,6 +9,8 @@ namespace Grid
 {
     struct Cell
     {
+        i32 level = -1;
+
         i32 railType = -1;
         std::bitset<4> connectionPoints;
 
@@ -22,10 +24,15 @@ namespace Grid
         bool clockwise = true;
         bool hasMine   = false;
         bool hasStation = false;
+        bool hasConverter = false;
+        bool buildable = true;
     };
 
     struct Grid
     {
+        i32 level = -1;
+
+        Vector2 worldPosition = { 0,0 }; // This is where to draw the grid...
         i32 width  = 32;
         i32 height = 32;
         i32 cellSize = 32;
@@ -116,9 +123,10 @@ namespace Grid
         }
     };
 
-    inline Grid Init(i32 width, i32 height, i32 cellSize)
+    inline Grid Init(i32 level, i32 width, i32 height, i32 cellSize)
     {
         Grid grid;
+        grid.level = level;
         grid.width = width;
         grid.height = height;
         grid.cellSize = cellSize;
@@ -141,6 +149,7 @@ namespace Grid
                 Vector2Int coordinate = {x,y};
                 Cell cell = 
                 {
+                    .level = level,
                     .coordinate = coordinate,
                     .worldPosition = grid.GetWorldPosition(coordinate)
                 };

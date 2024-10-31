@@ -4,9 +4,9 @@
 
 namespace GameCamera
 {
-    const float MIN_ZOOM = 0.1f;
+    const float MIN_ZOOM = 0.5f;
     const float MAX_ZOOM = 2.0f;
-    const float ZOOM_INCREMENT = 0.5f;
+    const float ZOOM_INCREMENT = 0.05f;
 
     struct Camera
     {

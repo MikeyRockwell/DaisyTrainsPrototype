@@ -12,7 +12,7 @@ namespace Rail
 
     const i32 UI_BLOCK_SIZE  = 64;
 
-    void Init(Grid::Grid& grid)
+    void Init()
     {
         for (int i = 0; i < RAIL_TYPES; i++)
         {
@@ -69,8 +69,10 @@ namespace Rail
         uiState.railSpritesCounterClockwise[BOTTOM_TO_LEFT] = Textures::CreateSprite(texture, source, origin, 0.0f, 1.0f, WHITE);
     }
 
-    void Update(Grid::Grid& grid)
+    void Update()
     {
+
+        Grid::Grid& grid = Game::GetCurrentLevel().grid;
         Vector2 mousePosition = Game::state.mouseWorldPosition;
         Vector2 mouseScreenPosition = GetMousePosition();
         Grid::Cell* cell = grid.GetCellAtWorldPosition(mousePosition);
@@ -216,11 +218,11 @@ namespace Rail
         }*/
     }
 
-    void Draw(Grid::Grid& grid)
+    void Draw()
     {
         // DRAW THE RAIL SEGMENT AT THE MOUSE POSITION
         Vector2 mouseWorldPosition = Game::state.mouseWorldPosition;
-        
+        Grid::Grid& grid = Game::GetCurrentLevel().grid;
         Grid::Cell* cell = grid.GetCellAtWorldPosition(mouseWorldPosition);
 
         // DRAW THE RAIL GHOST
@@ -313,7 +315,7 @@ namespace Rail
             }
 
             // DEBUG
-            DrawText(std::to_string(rail.trainsOnRail.size()).c_str(), cell->worldPosition.x, cell->worldPosition.y, 10, WHITE);
+            //DrawText(std::to_string(rail.trainsOnRail.size()).c_str(), cell->worldPosition.x, cell->worldPosition.y, 10, WHITE);
         }
 
         // DEBUG
@@ -331,8 +333,9 @@ namespace Rail
         }
     }
 
-    void DrawUI(Grid::Grid& grid)
+    void DrawUI()
     {   
+
         // DRAW THE UI BUTTONS
         for (int i = 0; i < RAIL_TYPES; i++)
         {
@@ -402,27 +405,29 @@ namespace Rail
         
         std::cout << "Error: GetNextDestinationPoint" << std::endl;
     }
-    Grid::Cell* GetNextCell(Grid::Grid* grid, Grid::Cell* cell)
+
+    Grid::Cell* GetNextCell(Grid::Cell* cell)
     {
+        Grid::Grid& grid = Game::GetCurrentLevel().grid;
         RailType railPiece = (RailType)cell->railType;
 
         if (cell->clockwise)
         {
-            if (railPiece == VERTICAL)        return grid->CoordinateToCell({cell->coordinate.x, cell->coordinate.y - 1});
-            if (railPiece == HORIZONTAL)      return grid->CoordinateToCell({cell->coordinate.x - 1, cell->coordinate.y});
-            if (railPiece == TOP_TO_LEFT)     return grid->CoordinateToCell({cell->coordinate.x - 1, cell->coordinate.y});
-            if (railPiece == TOP_TO_RIGHT)    return grid->CoordinateToCell({cell->coordinate.x, cell->coordinate.y - 1});
-            if (railPiece == BOTTOM_TO_RIGHT) return grid->CoordinateToCell({cell->coordinate.x + 1, cell->coordinate.y});
-            if (railPiece == BOTTOM_TO_LEFT)  return grid->CoordinateToCell({ cell->coordinate.x, cell->coordinate.y + 1 });
+            if (railPiece == VERTICAL)        return grid.CoordinateToCell({cell->coordinate.x, cell->coordinate.y - 1});
+            if (railPiece == HORIZONTAL)      return grid.CoordinateToCell({cell->coordinate.x - 1, cell->coordinate.y});
+            if (railPiece == TOP_TO_LEFT)     return grid.CoordinateToCell({cell->coordinate.x - 1, cell->coordinate.y});
+            if (railPiece == TOP_TO_RIGHT)    return grid.CoordinateToCell({cell->coordinate.x, cell->coordinate.y - 1});
+            if (railPiece == BOTTOM_TO_RIGHT) return grid.CoordinateToCell({cell->coordinate.x + 1, cell->coordinate.y});
+            if (railPiece == BOTTOM_TO_LEFT)  return grid.CoordinateToCell({ cell->coordinate.x, cell->coordinate.y + 1 });
         }
         else
         {
-            if (railPiece == VERTICAL)        return grid->CoordinateToCell({cell->coordinate.x, cell->coordinate.y + 1});
-            if (railPiece == HORIZONTAL)      return grid->CoordinateToCell({cell->coordinate.x + 1, cell->coordinate.y});
-            if (railPiece == TOP_TO_LEFT)     return grid->CoordinateToCell({cell->coordinate.x, cell->coordinate.y - 1});
-            if (railPiece == TOP_TO_RIGHT)    return grid->CoordinateToCell({cell->coordinate.x + 1, cell->coordinate.y});
-            if (railPiece == BOTTOM_TO_RIGHT) return grid->CoordinateToCell({cell->coordinate.x, cell->coordinate.y + 1});
-            if (railPiece == BOTTOM_TO_LEFT)  return grid->CoordinateToCell({ cell->coordinate.x - 1, cell->coordinate.y });
+            if (railPiece == VERTICAL)        return grid.CoordinateToCell({cell->coordinate.x, cell->coordinate.y + 1});
+            if (railPiece == HORIZONTAL)      return grid.CoordinateToCell({cell->coordinate.x + 1, cell->coordinate.y});
+            if (railPiece == TOP_TO_LEFT)     return grid.CoordinateToCell({cell->coordinate.x, cell->coordinate.y - 1});
+            if (railPiece == TOP_TO_RIGHT)    return grid.CoordinateToCell({cell->coordinate.x + 1, cell->coordinate.y});
+            if (railPiece == BOTTOM_TO_RIGHT) return grid.CoordinateToCell({cell->coordinate.x, cell->coordinate.y + 1});
+            if (railPiece == BOTTOM_TO_LEFT)  return grid.CoordinateToCell({ cell->coordinate.x - 1, cell->coordinate.y });
         }
         
         return nullptr;

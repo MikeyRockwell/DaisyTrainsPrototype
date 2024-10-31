@@ -8,8 +8,8 @@
 
 #include <iostream>
 
-const i32 screenWidth = 1600;
-const i32 screenHeight = 960;
+const i32 screenWidth = 2560;
+const i32 screenHeight = 1440;
 
 int main()
 {
@@ -19,33 +19,40 @@ int main()
 
     SetTargetFPS(60);
 
-	Grid::Grid grid = Grid::Init(screenWidth / CELL_SIZE, screenHeight / CELL_SIZE, CELL_SIZE);
-    Rail::Init(grid);
-	Mines::Init(grid);
+	
 	Game::Init();
+
+    Rail::Init();
+	Mines::Init();
 	Trains::Init();
 
 	while(!WindowShouldClose())
 	{
         Game::Update(); // Update the camera, and the mouse position
 
-		grid.Update();
-        Rail::Update(grid);
-		Trains::Update(grid);
-		Mines::Update(grid);
+		for (int i = 0; i < Game::LEVEL_COUNT; i++)
+		{
+			Rail::Update();
+			Trains::Update(i);
+		}
+		Mines::Update();
 
 		BeginDrawing();
         BeginMode2D(Game::state.camera.rlCamera);
-		ClearBackground(PALETTE_WHITE);
+		ClearBackground(PALETTE_DARK_GRAY);
 
-		grid.Draw(Game::state.camera);
-		Rail::Draw(grid);
-        Trains::Draw(grid);
+        for (int i = 0; i < Game::LEVEL_COUNT; i++)
+        {
+            Game::Level& level = Game::GetLevel(i);
+            if (level.unlocked == false) continue;
+			level.grid.Draw(Game::state.camera);
+			Trains::Draw(i);
+        }
+		Rail::Draw();
         Mines::Draw();
 
         EndMode2D();
 
-        //Rail::DrawUI(grid);
 		Game::Draw();
 
 		EndDrawing();

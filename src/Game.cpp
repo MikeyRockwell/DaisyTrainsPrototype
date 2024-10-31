@@ -10,19 +10,34 @@ namespace Game
 
     void Init()
     {
+        state.levels[0].grid = Grid::Init(5, 5, CELL_SIZE);
+        Grid::Grid& grid = state.levels[0].grid;
+
         state.camera = GameCamera::Camera{};
-        state.camera.target = { (float)GetScreenWidth() / 2, (float)GetScreenHeight() / 2 };
+        state.camera.target = { (float)grid.width * CELL_SIZE / 2, (float)grid.height * CELL_SIZE / 2 };
         state.camera.zoomTarget = 1.0f;
         state.running = true;
 
         state.camera.rlCamera.offset = { (float)GetScreenWidth() / 2, (float)GetScreenHeight() / 2 };
-        state.camera.rlCamera.target = { (float)GetScreenWidth() / 2, (float)GetScreenHeight() / 2 };
+        state.camera.rlCamera.target = state.camera.target;
         state.camera.rlCamera.rotation = 0.0f;
         state.camera.rlCamera.zoom = 1.0f;
     }
 
     void Update()
     {
+        state.clock.deltaTime = GetFrameTime() * state.clock.timeScale;
+
+        // TODO: Remove??
+        if (IsKeyPressed(KEY_EQUAL))
+        {
+            state.clock.timeScale += 0.1f;
+        }
+        if (IsKeyPressed(KEY_MINUS))
+        {
+            state.clock.timeScale -= 0.1f;
+        }
+
         Vector2 moveDirection = { 0, 0 };
         if (IsKeyDown(KEY_W))
         {
@@ -47,15 +62,16 @@ namespace Game
         GameCamera::Update(state.camera);
 
         state.mouseWorldPosition = GameCamera::GetWorldMousePosition(state.camera);
+
+        state.levels[state.currentLevel].grid.Update();
     }
 
     void Draw()
     {
         DrawFPS(linePositionX, 20);
-        //linePositionY += LINE_HEIGHT;
 
         std::string currencyText = "CURRENCY: " + std::to_string(state.currency);
-        DrawText(currencyText.c_str(), linePositionX, 40, fontSize, PALETTE_DARK_GREEN);
+        DrawText(currencyText.c_str(), linePositionX, 40, fontSize, PALETTE_GREEN);
         linePositionY += LINE_HEIGHT;
     }
 }

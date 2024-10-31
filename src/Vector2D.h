@@ -42,3 +42,9 @@ struct Vector2IntEqual
         return lhs.x == rhs.x && lhs.y == rhs.y;
     }
 };
+
+inline Vector2 LocalToWorldPosition(Vector2 parentWorldPosition, float parentAngle, Vector2 localPosition)
+{
+    Vector2 result = Vector2Rotate(localPosition, parentAngle * DEG2RAD);
+    return Vector2Add(result, parentWorldPosition);
+}
