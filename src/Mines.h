@@ -12,6 +12,15 @@ namespace Mines
         i32 count;
     };
 
+    struct Stack
+    {
+        Vector2Int coordinate;
+        Vector2 worldPosition;
+        CargoType cargoType;
+        i32 count = 0;
+        i32 capacity = 200;
+    };
+
     // FOR PICKUPS
     struct Mine
     {
@@ -20,16 +29,12 @@ namespace Mines
         Vector2Int coordinate;
         Vector2 worldPosition;
 
-        Vector2Int stackCoordinate;
-        Vector2 stackWorldPosition;
+        Stack* stack;
         
         bool vertical = false;
         Rail::RailType compatibleRailType;
 
         Textures::Sprite sprite;
-
-        i32 capacity = 200;
-        i32 count = 200;
     };
 
     // FOR DELIVERIES
@@ -39,6 +44,9 @@ namespace Mines
 
         Vector2Int coordinate;
         Vector2 worldPosition;
+
+        bool hasStack = false;
+        Stack* stack;
 
         Rail::RailType compatibleRailType;
 
@@ -64,13 +72,19 @@ namespace Mines
         i32 capacity = 200;
     };
 
-    struct State
+    struct MineState
     {
+        i32 minesAvailable = 1;
+        i32 stationsAvailable = 1;
+
+        bool buildableCell = false;
+        bool flipped = false;
+
         std::unordered_map<Vector2Int, Mine,      Vector2IntHash, Vector2IntEqual> mines;
         std::unordered_map<Vector2Int, Station,   Vector2IntHash, Vector2IntEqual> stations;
-        std::unordered_map<Vector2Int, Converter, Vector2IntHash, Vector2IntEqual> converters;
-        
+        std::unordered_map<Vector2Int, Stack,     Vector2IntHash, Vector2IntEqual> stacks;
     };
+    extern MineState state;
     
     struct Resources
     {
@@ -78,36 +92,22 @@ namespace Mines
         Texture* stationTextures[PALETTE_SIZE];
         Texture* converterTextures[PALETTE_SIZE];
         Texture* converterSymbolTexture;
+
+        Texture* mineGhostTexture;
+        Texture* stationGhostTexture;
+
+        Textures::Sprite mineGhostSprite;
+        Textures::Sprite stationGhostSprite;
     };
     extern Resources resources;
 
-    void Init();
-    void CreateMine     (i32 level, Grid::Cell* cell, i32 capacity, CargoType cargo, bool flipped);
-    void CreateStation  (i32 level, Grid::Cell* cell, CargoType cargo, bool flipped);
-    void CreateConverter(i32 level, Grid::Cell* cell, CargoType input, CargoType output);
-    void Update();
-    void Draw();
+    void     Init();
+    Mine*    CreateMine     (i32 level, Grid::Cell* cell, i32 capacity, CargoType cargo, bool flipped);
+    Station* CreateStation  (i32 level, Grid::Cell* cell, CargoType cargo, bool flipped);
+    Stack*   CreateStack    (Vector2Int coordinate, CargoType cargo, i32 capacity, i32 count);
+    void     Update         (i32 level);
+    void     Draw           (i32 level);
+    void     DrawStack      (Stack& stack);
     
-    inline bool IsRailCompatible(Grid::Cell* cell)
-    {
-        State& state = Game::state.levels[cell->level].mineState;
-
-        if (cell->hasMine)
-        {
-            Mine* mine = &state.mines[cell->coordinate];
-            if (mine->compatibleRailType != Rail::uiState.selectedType)
-            {
-                return false;
-            }
-        }
-        if (cell->hasStation)
-        {
-            Station* station = &state.stations[cell->coordinate];
-            if (station->compatibleRailType != Rail::uiState.selectedType)
-            {
-                return false;
-            }
-        }
-        return true;
-    }
+    bool IsRailCompatible(Grid::Cell* cell);
 }

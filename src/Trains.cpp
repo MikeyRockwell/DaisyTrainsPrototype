@@ -1,23 +1,24 @@
 #include "Curves.h"
 #include "Game.h"
+#include "Mines.h"
 #include "Rail.h"
 #include "Trains.h"
 
 #include <string>
 #include <iostream>
 #include <cassert>
-#include "Mines.h"
 
 namespace Trains
 {
-    State state;
+    TrainState state;
+    TrainResources resources;
 
 	void Init()
 	{
         Texture* texture = Textures::Load("res/sprites/train_engine.png");
         i32 width = texture->width;
         i32 height = texture->height;
-        state.trainSprite = Textures::CreateSprite
+        resources.trainSprite = Textures::CreateSprite
         (
             texture,
             { 0,0, (float)width, (float)height },
@@ -30,7 +31,7 @@ namespace Trains
         texture = Textures::Load("res/sprites/train_car.png");
         width = texture->width;
         height = texture->height;
-        state.carSprite = Textures::CreateSprite
+        resources.carSprite = Textures::CreateSprite
         (
             texture,
             { 0,0, (float)width, (float)height },
@@ -43,19 +44,12 @@ namespace Trains
 
 	void Update(i32 level)
 	{
-        Game::Level currentLevel = Game::GetLevel(level);
-        Grid::Grid& grid = currentLevel.grid;
-		
-        // TODO: Put this in the UI
-		if (IsKeyPressed(KEY_SPACE))
-		{
-		    UI::state.placeTrain = !UI::state.placeTrain;
-		}
+        Grid::Grid& grid = Game::state.grid;
 
         /*===============================================
             CREATE TRAIN
         ===============================================*/
-		if (UI::state.placeTrain)
+		if (UI::state.buildType == UI::BuildType::TRAIN)
 		{
 			Rail::uiState.selectedType = Rail::RailType::NONE;
             
@@ -66,9 +60,10 @@ namespace Trains
             {
                 state.trainPlacementPosition = Vector2Add(cell->worldPosition, { CELL_SIZE / 2.0f, CELL_SIZE / 2.0f });
 
-                if (IsMouseButtonPressed(0))
+                if (IsMouseButtonPressed(0) && state.trainsAvailable > 0)
                 {
                     TrainEngine& train = state.trains[state.trainCount++];
+
                     train.transform.worldPosition = state.trainPlacementPosition;
                     train.transform.currentCell = cell;
                     train.acceleration = 50.0f;
@@ -84,7 +79,7 @@ namespace Trains
                     train.transform.distanceTravelled = 0.0f;
                     train.transform.nextCell = Rail::GetNextCell(cell);
 
-                    train.carCount = 20;
+                    train.carCount = 8;
                     for (int i = 0; i < train.carCount; i++)
                     {
                         Car& car = train.cars[i];
@@ -96,7 +91,6 @@ namespace Trains
                         car.transform.distanceTravelled = 0.0f;
                         car.transform.nextCell = train.transform.nextCell;
                     }
-                    
                 }
             }
 		}
@@ -104,24 +98,24 @@ namespace Trains
         for (int i = 0; i < state.trainCount; i++)
         {
             TrainEngine& train = state.trains[i];
-            UpdateTransform(train, train.transform);
+            UpdateTransform(level, train, train.transform);
 
             for (int j = 0; j < train.carCount; j++)
             {
                 Car& car = train.cars[j];
 
                 TrainTransform& parentTransform = j == 0 ? train.transform : train.cars[j - 1].transform;
-                UpdateCarTransform(car, parentTransform, train.transform.speed);
+                UpdateCarTransform(level, car, parentTransform, train.transform.speed);
 
                 // LOADING AND UNLOADING
                 Grid::Cell* cell = grid.GetCellAtWorldPosition(car.transform.worldPosition);
                 if (cell->hasMine && !car.loaded)
                 {
-                    Mines::Mine* mine = &currentLevel.mineState.mines[cell->coordinate];
-                    if (mine->count > 0)
+                    Mines::Mine* mine = &Mines::state.mines[cell->coordinate];
+                    if (mine->stack->count > 0)
                     {
                         i32 amount = 1;
-                        mine->count -= amount;
+                        mine->stack->count -= amount;
                         car.loaded = true;
                         car.cargoType = mine->cargoType;
                     }
@@ -129,10 +123,11 @@ namespace Trains
 
                 if (cell->hasStation && car.loaded)
                 {
-                    Mines::Station* station = &currentLevel.mineState.stations[cell->coordinate];
+                    // Unloading at STATION
+                    Mines::Station* station = &Mines::state.stations[cell->coordinate];
                     if (station->cargoType == car.cargoType)
                     {
-                        Game::state.currency += 1;
+                        station->stack->count++;
                         car.loaded = false;
                     }
                 }
@@ -142,8 +137,7 @@ namespace Trains
 
     void UpdateTransform(i32 level, TrainEngine& engine, TrainTransform& transform)
     {
-
-        Grid::Grid& grid = Game::GetLevel(level).grid;
+        Grid::Grid& grid = Game::state.grid;
 
         // Update the distance travelled
         transform.distanceTravelled += transform.speed * Game::state.clock.deltaTime;
@@ -201,13 +195,12 @@ namespace Trains
 
     void UpdateCarTransform(i32 level, Car& car, TrainTransform& parentTransform, float speed)
     {
-        Grid::Grid& grid = Game::GetLevel(level).grid;
+        Grid::Grid& grid = Game::state.grid;
         TrainTransform& transform = car.transform;
         if (transform.currentCell == parentTransform.currentCell &&
             abs(transform.tValue - parentTransform.tValue) < 0.15f)
         {
             // Just offset the t value
-            std::cout << "Offsetting t value" << std::endl;
             car.transform.tValue = parentTransform.tValue - 0.53f;
             transform.distanceTravelled = transform.distanceToNextCell * car.transform.tValue;
         }
@@ -276,8 +269,9 @@ namespace Trains
 
 	void Draw(i32 level)
     {
-        Grid::Grid& grid = Game::GetLevel(level).grid;
-		if (UI::state.placeTrain)
+        Grid::Grid& grid  = Game::state.grid;
+
+		if (UI::state.buildType == UI::BuildType::RAIL)
 		{
 			Vector2 mousePosition = GetMousePosition();
 			Grid::Cell* cell = grid.GetCellAtWorldPosition(mousePosition);
@@ -295,15 +289,15 @@ namespace Trains
             {
                 train.transform.worldPosition.x,
                 train.transform.worldPosition.y,
-                state.trainSprite.texture->width,
-                state.trainSprite.texture->height
+                (float)resources.trainSprite.texture->width,
+                (float)resources.trainSprite.texture->height
             };
             DrawTexturePro
             (
-                *state.trainSprite.texture,
-                state.trainSprite.source,
+                *resources.trainSprite.texture,
+                resources.trainSprite.source,
                 destination,
-                { state.trainSprite.origin.x, state.trainSprite.origin.y },
+                { resources.trainSprite.origin.x, resources.trainSprite.origin.y },
                 train.transform.rotation,
                 color
             );
@@ -316,15 +310,15 @@ namespace Trains
                 {
                     car.transform.worldPosition.x,
                     car.transform.worldPosition.y,
-                    (float)state.carSprite.texture->width,
-                    (float)state.carSprite.texture->height
+                    (float)resources.carSprite.texture->width,
+                    (float)resources.carSprite.texture->height
                 };
                 DrawTexturePro
                 (
-                    *state.carSprite.texture,
-                    state.carSprite.source,
+                    *resources.carSprite.texture,
+                    resources.carSprite.source,
                     destination,
-                    { state.carSprite.origin.x, state.carSprite.origin.y },
+                    { resources.carSprite.origin.x, resources.carSprite.origin.y },
                     car.transform.rotation,
                     color
                 );

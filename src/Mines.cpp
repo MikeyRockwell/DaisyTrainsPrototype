@@ -3,11 +3,11 @@
 
 namespace Mines
 {
+    MineState state;
     Resources resources;
 
     void Init()
     {
-        
         // MINES
         Texture* texture = Textures::Load("res/sprites/mine_pink.png");
         resources.mineTextures[PINK_CARGO] = texture;
@@ -26,31 +26,36 @@ namespace Mines
         texture = Textures::Load("res/sprites/converter_pink.png");
         resources.converterTextures[PINK_CARGO] = texture;
 
-        texture = Textures::Load("res/sprites/converter_symbol.png");
-        resources.converterSymbolTexture = texture;
+        resources.mineGhostTexture = Textures::Load("res/sprites/mine_ghost.png");
+        resources.mineGhostSprite = Textures::CreateSprite
+        (
+            resources.mineGhostTexture, 
+            { 0,0,CELL_SIZE, CELL_SIZE }, 
+            { CELL_SIZE / 2, CELL_SIZE / 2 }, 
+            0.0f, 1.0f, WHITE
+        );
+        resources.stationGhostTexture = Textures::Load("res/sprites/station_ghost.png");
+        resources.stationGhostSprite = Textures::CreateSprite
+        (
+            resources.stationGhostTexture,
+            { 0,0,CELL_SIZE, CELL_SIZE },
+            { CELL_SIZE / 2, CELL_SIZE / 2 },
+            0.0f, 1.0f, WHITE
+        );
 
         // level 0
 
         i32 levelNumber = 0;
-        Game::Level& level = Game::state.levels[levelNumber];
+        Grid::Grid& grid   = Game::state.grid;
 
-        /*============================================
-            PINK MINE AND STATION
-        ============================================*/
-        Vector2Int coordinate = { 2,1 };
-        CreateMine(levelNumber, &level.grid.cells[coordinate], 200, PINK_CARGO, false);
-        coordinate = { 2, 4 };
-        CreateStation(levelNumber, &level.grid.cells[coordinate], PINK_CARGO, false);
+
     }
 
-    void CreateMine(i32 levelNumber, Grid::Cell* cell, i32 capacity, CargoType cargoType, bool vertical)
+    Mine* CreateMine(i32 levelNumber, Grid::Cell* cell, i32 capacity, CargoType cargoType, bool vertical)
     {
-        State& state = Game::state.levels[levelNumber].mineState;
         Vector2Int coordinate = cell->coordinate;
         state.mines[coordinate] = {};
         Mine& mine = state.mines[coordinate];
-        mine.capacity = capacity;
-        mine.count = capacity;
         mine.coordinate = coordinate;
         mine.vertical = vertical;
         mine.compatibleRailType = vertical ? Rail::RailType::VERTICAL : Rail::RailType::HORIZONTAL;
@@ -58,15 +63,6 @@ namespace Mines
         mine.cargoType = cargoType;
 
         cell->hasMine = true;
-
-        mine.stackCoordinate = vertical ? 
-            Vector2Int{ coordinate.x + 1, coordinate.y } : 
-            Vector2Int{ coordinate.x, coordinate.y - 1 };
-        mine.stackWorldPosition = { (float)mine.stackCoordinate.x * CELL_SIZE, (float)mine.stackCoordinate.y * CELL_SIZE };
-
-        Grid::Cell* visualCell = Game::state.levels[levelNumber].grid.CoordinateToCell(mine.stackCoordinate);
-        visualCell->buildable = false;
-        
         mine.sprite = Textures::CreateSprite
         (
             resources.mineTextures[cargoType],
@@ -76,13 +72,15 @@ namespace Mines
             1.0f,
             PALETTE[mine.cargoType]
         );
+
+        return &mine;
     }
 
-    void CreateStation(i32 level, Grid::Cell* cell, CargoType cargo, bool flipped)
+    Station* CreateStation(i32 level, Grid::Cell* cell, CargoType cargo, bool flipped)
     {
         Vector2Int coordinate = cell->coordinate;
-        Game::state.levels[level].mineState.stations[coordinate] = {};
-        Station& station = Game::state.levels[level].mineState.stations[coordinate];
+        state.stations[coordinate] = {};
+        Station& station = state.stations[coordinate];
 
         station.coordinate = coordinate;
         station.vertical = flipped;
@@ -100,44 +98,138 @@ namespace Mines
             1.0f,
             PALETTE[station.cargoType]
         );
+
+        return &station;
     }
 
-    void CreateConverter(i32 level, Grid::Cell* cell, CargoType input, CargoType output)
+    Stack* CreateStack(Vector2Int coordinate, CargoType cargo, i32 capacity, i32 count)
     {
-        Vector2Int coordinate = cell->coordinate;
-        Game::state.levels[level].mineState.converters[coordinate] = {};
-        Converter& converter = Game::state.levels[level].mineState.converters[coordinate];
+        Stack& stack = state.stacks[coordinate];
+        stack.cargoType = cargo;
+        stack.capacity = capacity;
+        stack.count = count;
+        stack.coordinate = coordinate;
+        stack.worldPosition = { (float)stack.coordinate.x * CELL_SIZE, (float)stack.coordinate.y * CELL_SIZE };
 
-        converter.input = input;
-        converter.output = output;
-        converter.inputCoordinate = coordinate;
-        converter.outputCoordinate = { coordinate.x, coordinate.y - 1 };
-        converter.stackCoordinate = { coordinate.x, coordinate.y - 2 };
-        converter.inputWorldPosition = { (float)coordinate.x * CELL_SIZE, (float)coordinate.y * CELL_SIZE };
-        converter.outputWorldPosition = 
-        { 
-            (float)converter.outputCoordinate.x * CELL_SIZE, 
-            (float)converter.outputCoordinate.y * CELL_SIZE 
-        };
-        converter.stackWorldPosition =
+        return &stack;
+    }
+
+    void Update(i32 level)
+    {
+        Vector2 mouseWorldPosition = Game::state.mouseWorldPosition;
+        Grid::Grid& grid = Game::state.grid;
+        Grid::Cell* cell = grid.GetCellAtWorldPosition(mouseWorldPosition);
+        state.buildableCell = false;
+
+        if (GetMouseWheelMove() != 0)
         {
-            (float)converter.stackCoordinate.x * CELL_SIZE,
-            (float)converter.stackCoordinate.y * CELL_SIZE
-        };
+            state.flipped = !state.flipped;
+        }
 
-        cell->hasConverter = true;
-        // TODO: handle builability for the extra cells...
+        if (UI::state.buildType == UI::BuildType::MINE)
+        {
+            if ( cell->initialized && 
+                !cell->hasMine && 
+                 cell->buildable &&
+                Mines::IsRailCompatible())
+            {
+                Stack* stack = nullptr;
+                for (int x = -1; x < 2; x++)
+                {
+                    for (int y = -1; y < 2; y++)
+                    {
+                        Vector2Int coordinate = { cell->coordinate.x + x, cell->coordinate.y + y };
+                        if (state.stacks.find(coordinate) != state.stacks.end())
+                        {
+                            stack = &state.stacks[coordinate];
+                            state.buildableCell = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (IsMouseButtonPressed(0) && stack != nullptr && state.minesAvailable > 0)
+                {
+                    Mine* mine = CreateMine(level, cell, 200, stack->cargoType, state.flipped);
+                    mine->stack = stack;
+                    state.minesAvailable--;
+                    cell->buildable = false;
+                    cell->hasMine = true;
+                }
+            }
+            else if (cell->hasMine && IsMouseButtonPressed(1))
+            {
+                state.mines.erase(cell->coordinate);
+                cell->hasMine= false;
+                if (cell->railType == -1) cell->buildable = true;
+                state.minesAvailable++;
+            }
+        }
+
+        if (UI::state.buildType == UI::BuildType::STATION)
+        {
+            if (cell->initialized && !cell->hasStation && cell->buildable)
+            {
+                Stack* stack = nullptr;
+                for (int x = -1; x < 2; x++)
+                {
+                    for (int y = -1; y < 2; y++)
+                    {
+                        Vector2Int coordinate = { cell->coordinate.x + x, cell->coordinate.y + y };
+                        if (state.stacks.find(coordinate) != state.stacks.end())
+                        {
+                            stack = &state.stacks[coordinate];
+                            state.buildableCell = true;
+                            break;
+                        }
+                    }
+                }
+                if (IsMouseButtonPressed(0) && stack != nullptr && state.stationsAvailable > 0)
+                {
+                    Station* station = CreateStation(level, cell, stack->cargoType, state.flipped);
+                    station->stack = stack;
+                    state.stationsAvailable--;
+                    cell->buildable = false;
+                    cell->hasStation = true;
+                }
+            }
+            else if (cell->hasStation && IsMouseButtonPressed(1))
+            {
+                state.stations.erase(cell->coordinate);
+                cell->hasStation = false;
+                if (cell->railType == -1) cell->buildable = true;
+                state.stationsAvailable++;
+            }
+        }
     }
 
-    void Update()
+    bool IsRailCompatible(Grid::Cell* cell)
     {
-
+        if (cell->initialized == false)
+        {
+            return false;
+        }
+        if (cell->hasMine)
+        {
+            Mine* mine = &state.mines[cell->coordinate];
+            if (mine->compatibleRailType != Rail::uiState.selectedType)
+            {
+                return false;
+            }
+        }
+        if (cell->hasStation)
+        {
+            Station* station = &state.stations[cell->coordinate];
+            if (station->compatibleRailType != Rail::uiState.selectedType)
+            {
+                return false;
+            }
+        }
+        return true;
     }
 
-    void Draw()
+    void Draw(i32 level)
     {
-        State state = Game::GetCurrentLevel().mineState;
-
         // DRAW MINES
         for (auto& [coordinate, station] : state.stations)
         {
@@ -157,6 +249,11 @@ namespace Mines
                 station.vertical ? 90.0f : 0.0f,
                 WHITE
             );
+
+            /*if (station.hasStack)
+            {
+                DrawStack(*station.stack);
+            }*/
         }
         // DRAW STATIONS
         for (auto& [coordinate, mine] : state.mines)
@@ -179,109 +276,100 @@ namespace Mines
             );
             Rectangle visualDestination =
             {
-                mine.stackWorldPosition.x,
-                mine.stackWorldPosition.y,
+                mine.stack->worldPosition.x,
+                mine.stack->worldPosition.y,
                 CELL_SIZE,
                 CELL_SIZE
             };
+        }
 
-            // 64 is the number of rectangles to draw in the mine visual (for a full mine)
-            // get the percentage of the mine that is full
-            float percentage = (float)mine.count / (float)mine.capacity;
-            // get how many rectangles to draw to represent the mine with 64 / 8 rectangles per row and column
-            i32 rectanglesToDraw = (i32)(64 * percentage);
-            // draw the rectangles from the top right corner
-            for (int y = 8 - 1; y >= 0; y--)
+        // DRAW STACKS
+        for (auto& [coordinate, stack] : state.stacks)
+        {
+            DrawStack(stack);
+        }
+
+        // BUILDING GHOST
+        Vector2 mouseWorldPosition = Game::state.mouseWorldPosition;
+        Grid::Cell* cell = Game::state.grid.GetCellAtWorldPosition(mouseWorldPosition);
+
+        if (UI::state.buildType == UI::BuildType::MINE)
+        {
+            if (cell->initialized && !cell->hasMine && cell->buildable)
             {
-                for (int x = 0; x < 8; x++)
+                Color ghostColor = state.buildableCell ? PALETTE_GREEN : PALETTE_ORANGE ;
+                Rectangle bounds =
                 {
-                    if (rectanglesToDraw <= 0) break;
-
-                    Rectangle rect =
-                    {
-                        visualDestination.x + (CELL_SIZE - 8) - x * 8,
-                        visualDestination.y + y * 8,
-                        8,
-                        8
-                    };
-                    DrawRectangleRec(rect, PALETTE[mine.cargoType]);
-                    DrawRectangleLinesEx(rect, 1, BLACK);
-                    rectanglesToDraw--;
-                }
-                if (rectanglesToDraw <= 0) break;
-            }
-
-            //DrawRectangleRec(visualDestination, PALETTE[mine.cargoType]);
-            /*Vector2 textPosition = 
-            { 
-                mine.visualWorldPosition.x,
-                mine.visualWorldPosition.y + CELL_SIZE - 20
-            };
-            std::string mineCount = std::to_string(mine.count);
-            DrawText(mineCount.c_str(), textPosition.x, textPosition.y, 20, BLACK);*/
-
-            // DRAW CONVERTERS
-            for (auto& [coordinate, converter] : state.converters)
-            {
-                Rectangle destination =
-                {
-                    converter.inputWorldPosition.x,
-                    converter.inputWorldPosition.y,
+                    state.flipped ? cell->worldPosition.x + CELL_SIZE : cell->worldPosition.x,
+                    state.flipped ? cell->worldPosition.y : cell->worldPosition.y,
                     CELL_SIZE,
                     CELL_SIZE
                 };
                 DrawTexturePro
                 (
-                    *resources.converterTextures[converter.input],
-                    { 0,0,CELL_SIZE,CELL_SIZE },
-                    destination,
+                    *resources.mineGhostTexture,
+                    { 0,0,CELL_SIZE, CELL_SIZE },
+                    bounds,
                     { 0,0 },
-                    0.0f,
-                    WHITE
+                    state.flipped ? 90.0f : 0.0f,
+                    ghostColor
                 );
-                destination =
-                {
-                    converter.outputWorldPosition.x,
-                    converter.outputWorldPosition.y,
-                    CELL_SIZE,
-                    CELL_SIZE
-                };
-                DrawTexturePro
-                (
-                    *resources.converterSymbolTexture,
-                    { 0,0,CELL_SIZE,CELL_SIZE },
-                    destination,
-                    { 0,0 },
-                    0.0f,
-                    PALETTE[converter.output]
-                );
-                
-                // 64 is the number of rectangles to draw in the mine visual (for a full mine)
-                // get the percentage of the mine that is full
-                float percentage = (float)converter.outputCount / (float)converter.capacity;
-                // get how many rectangles to draw to represent the mine with 64 / 8 rectangles per row and column
-                i32 rectanglesToDraw = (i32)(64 * percentage);
-                // draw the rectangles from the top right corner
-                for (int y = 8 - 1; y >= 0; y--)
-                {
-                    for (int x = 0; x < 8; x++)
-                    {
-                        if (rectanglesToDraw <= 0) break;
-
-                        Rectangle rect =
-                        {
-                            converter.stackWorldPosition.x + (CELL_SIZE - 8) - x * 8,
-                            converter.stackWorldPosition.y + y * 8,
-                            8,
-                            8
-                        };
-                        DrawRectangleRec(rect, PALETTE[mine.cargoType]);
-                        DrawRectangleLinesEx(rect, 1, BLACK);
-                        rectanglesToDraw--;
-                    }
-                    if (rectanglesToDraw <= 0) break;
-                }
             }
         }
+
+        if (UI::state.buildType == UI::BuildType::STATION)
+        {
+            if (cell->initialized && !cell->hasStation && cell->buildable)
+            {
+                Color ghostColor = state.buildableCell ? PALETTE_GREEN : PALETTE_ORANGE;
+                Rectangle bounds =
+                {
+                    state.flipped ? cell->worldPosition.x + CELL_SIZE : cell->worldPosition.x,
+                    state.flipped ? cell->worldPosition.y : cell->worldPosition.y,
+                    CELL_SIZE,
+                    CELL_SIZE
+                };
+                DrawTexturePro
+                (
+                    *resources.stationGhostTexture,
+                    { 0,0,CELL_SIZE, CELL_SIZE },
+                    bounds,
+                    { 0,0 },
+                    state.flipped ? 90.0f : 0.0f,
+                    ghostColor
+                );
+            }
+        }
+    }
+
+    void DrawStack(Stack& stack)
+    {
+        // 64 is the number of rectangles to draw in the mine visual (for a full mine)
+        // get the percentage of the mine that is full
+        float percentage = (float)stack.count / (float)stack.capacity;
+        // get how many rectangles to draw to represent the mine with 64 / 8 rectangles per row and column
+        i32 rectanglesToDraw = (i32)(64 * percentage);
+        // draw the rectangles from the top right corner
+        for (int y = 8 - 1; y >= 0; y--)
+        {
+            for (int x = 0; x < 8; x++)
+            {
+                if (rectanglesToDraw <= 0) break;
+
+                Rectangle rect =
+                {
+                    stack.worldPosition.x + (CELL_SIZE - 8) - x * 8,
+                    stack.worldPosition.y + y * 8,
+                    8,
+                    8
+                };
+                DrawRectangleRec(rect, PALETTE[stack.cargoType]);
+                DrawRectangleLinesEx(rect, 1, BLACK);
+                rectanglesToDraw--;
+            }
+            if (rectanglesToDraw <= 0) break;
+        }
+
+        DrawRectangleLinesEx({ stack.worldPosition.x, stack.worldPosition.y, CELL_SIZE, CELL_SIZE }, 2.0f / Game::state.camera.rlCamera.zoom, PALETTE[stack.cargoType]);
     }
 }

@@ -74,16 +74,22 @@ namespace Trains
         bool hovered;
     };
 
-    struct State
+    struct TrainState
     {
+        i32 trainsAvailable = 1;
+
         Vector2 trainPlacementPosition;
         i32 trainCount = 0;
         TrainEngine trains[MAX_TRAINS];
+    };
+    extern TrainState state;
 
+    struct TrainResources
+    {
         Textures::Sprite trainSprite;
         Textures::Sprite carSprite;
     };
-    extern State state;
+    extern TrainResources resources;
 
     void Init  ();
     void Update             (i32 level);

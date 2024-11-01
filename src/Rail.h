@@ -7,7 +7,6 @@
 #include "Trains.h"
 
 
-
 namespace Rail
 {
     const i32 RAIL_TYPES = 6;
@@ -52,13 +51,14 @@ namespace Rail
 
     struct RailState
     {
+        i32 railAvailable = 10;
         std::unordered_map<Vector2Int, Rail, Vector2IntHash, Vector2IntEqual> coordinateToRailMap;
     };
     extern RailState railState;
 
     struct UIState
     {
-        RailType selectedType = RailType::NONE;
+        RailType selectedType = RailType::VERTICAL;
         UIButton buttons[RAIL_TYPES];
         Rail selectedRail;
         bool clockwise = true;
@@ -69,9 +69,9 @@ namespace Rail
     extern UIState uiState;
 
     void Init  ();
-    void Update();
-    void Draw();
-    void DrawUI();
+    void Update(i32 level);
+    void Draw  (i32 level);
+    void DrawUI(i32 level);
 
     inline Vector2 GetCellConnectionPoint(Grid::Cell* cell, ConnectionPoint point)
     {

@@ -69,10 +69,9 @@ namespace Rail
         uiState.railSpritesCounterClockwise[BOTTOM_TO_LEFT] = Textures::CreateSprite(texture, source, origin, 0.0f, 1.0f, WHITE);
     }
 
-    void Update()
+    void Update(i32 level)
     {
-
-        Grid::Grid& grid = Game::GetCurrentLevel().grid;
+        Grid::Grid& grid = Game::state.grid;
         Vector2 mousePosition = Game::state.mouseWorldPosition;
         Vector2 mouseScreenPosition = GetMousePosition();
         Grid::Cell* cell = grid.GetCellAtWorldPosition(mousePosition);
@@ -127,15 +126,17 @@ namespace Rail
         /*=========================================================
             CREATE RAIL SEGMENT
         =========================================================*/
-        if (IsMouseButtonDown(0))
+        if (IsMouseButtonPressed(0))
         {
             if 
             (
+                UI::state.buildType == UI::BuildType::RAIL &&
                 uiState.selectedType != RailType::NONE && 
                 cell->railType == -1 && 
-                Mines::IsRailCompatible(cell))
+                Mines::IsRailCompatible(cell) &&
+                railState.railAvailable > 0)
             {
-                Rail rail;
+                Rail rail{};
                 rail.type = uiState.selectedType;
                 rail.start = uiState.selectedRail.start;
                 rail.end   = uiState.selectedRail.end;
@@ -143,6 +144,7 @@ namespace Rail
                 cell->clockwise = uiState.clockwise;
                 railState.coordinateToRailMap[cell->coordinate] = rail;
                 SetConnectionPoints(cell, flags);
+                railState.railAvailable--;
             }
         }
 
@@ -173,6 +175,7 @@ namespace Rail
                 cell->connectionPositions[1] = { -1,-1 };
                 // Remove the rail from the rail state
                 railState.coordinateToRailMap.erase(cell->coordinate);
+                railState.railAvailable++;
             }
         }
 
@@ -218,15 +221,16 @@ namespace Rail
         }*/
     }
 
-    void Draw()
+    void Draw(i32 level)
     {
         // DRAW THE RAIL SEGMENT AT THE MOUSE POSITION
         Vector2 mouseWorldPosition = Game::state.mouseWorldPosition;
-        Grid::Grid& grid = Game::GetCurrentLevel().grid;
+        Grid::Grid& grid = Game::state.grid;
         Grid::Cell* cell = grid.GetCellAtWorldPosition(mouseWorldPosition);
 
         // DRAW THE RAIL GHOST
-        if (uiState.selectedType != RailType::NONE)
+        if (uiState.selectedType != RailType::NONE && 
+            UI::state.buildType == UI::RAIL && cell->initialized)
         {
             Color ghostColor = cell->railType != -1 ? RED : SKYBLUE;
 
@@ -408,7 +412,7 @@ namespace Rail
 
     Grid::Cell* GetNextCell(Grid::Cell* cell)
     {
-        Grid::Grid& grid = Game::GetCurrentLevel().grid;
+        Grid::Grid& grid = Game::state.grid;
         RailType railPiece = (RailType)cell->railType;
 
         if (cell->clockwise)
@@ -431,6 +435,5 @@ namespace Rail
         }
         
         return nullptr;
-
     }
 }

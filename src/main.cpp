@@ -1,3 +1,4 @@
+
 #include "Engine.h"
 
 #include "Game.h"
@@ -18,42 +19,40 @@ int main()
 	InitWindow(screenWidth, screenHeight, "Connex");
 
     SetTargetFPS(60);
-
 	
 	Game::Init();
-
     Rail::Init();
 	Mines::Init();
 	Trains::Init();
+	UI::Init();
+
+    Game::AddLevel(0);
 
 	while(!WindowShouldClose())
 	{
         Game::Update(); // Update the camera, and the mouse position
+		Rail::Update(0);
+		Trains::Update(0);
+		Mines::Update(0);
+		UI::Update();
 
-		for (int i = 0; i < Game::LEVEL_COUNT; i++)
-		{
-			Rail::Update();
-			Trains::Update(i);
-		}
-		Mines::Update();
+		Game::CheckLevelStates();
 
 		BeginDrawing();
         BeginMode2D(Game::state.camera.rlCamera);
 		ClearBackground(PALETTE_DARK_GRAY);
 
-        for (int i = 0; i < Game::LEVEL_COUNT; i++)
-        {
-            Game::Level& level = Game::GetLevel(i);
-            if (level.unlocked == false) continue;
-			level.grid.Draw(Game::state.camera);
-			Trains::Draw(i);
-        }
-		Rail::Draw();
-        Mines::Draw();
+		Game::state.grid.Draw(Game::state.camera);
+		Rail::Draw(0);
+		Trains::Draw(0);
+		Mines::Draw(0);
+
+		UI::DrawWorldSpace();
 
         EndMode2D();
 
 		Game::Draw();
+        UI::DrawScreenSpace();
 
 		EndDrawing();
 	}

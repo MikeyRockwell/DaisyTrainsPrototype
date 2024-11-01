@@ -11,6 +11,7 @@ namespace Grid
     {
         i32 level = -1;
 
+        bool initialized = false;
         i32 railType = -1;
         std::bitset<4> connectionPoints;
 
@@ -19,13 +20,13 @@ namespace Grid
         Vector2Int coordinate;
         Vector2 worldPosition;
 
-        bool mouseOver = false;
-        bool selected  = false;
-        bool clockwise = true;
-        bool hasMine   = false;
-        bool hasStation = false;
-        bool hasConverter = false;
-        bool buildable = true;
+        bool mouseOver   = false;
+        bool selected    = false;
+        bool clockwise   = true;
+        bool hasMine     = false;
+        bool hasStation  = false;
+        bool hasObstacle = false;
+        bool buildable   = true;
     };
 
     struct Grid
@@ -42,6 +43,11 @@ namespace Grid
         inline Cell* GetCellAtWorldPosition(Vector2 worldPosition)
         {
             Vector2Int gridPosition = {i32(floor(worldPosition.x / cellSize)), i32(floor(worldPosition.y / cellSize))};
+            if (cells.find(gridPosition) == cells.end())
+            {
+                return &cells[{-1, -1}];
+                
+            }
             return &cells[gridPosition];
         }
 
@@ -50,21 +56,14 @@ namespace Grid
             return &cells[coordinate];
         }
 
-        inline Vector2 GetWorldPosition(Vector2Int coordinate)
-        {
-            return {(float)(coordinate.x * cellSize), (float)(coordinate.y * cellSize) };
-        }
 
         inline void Update()
         {
-            for (int y = 0; y < height; y++)
+            for (auto& [coordinate, cell] : cells)
             {
-                for (int x = 0; x <width; x++)
-                {
-                    Vector2Int coordinate = Vector2Int{x,y};
-                    cells[coordinate].mouseOver = false;
-                }
+                cell.mouseOver = false;
             }
+
             Cell* cell = GetCellAtWorldPosition(GetMousePosition());
             cell->mouseOver = true;
 
@@ -76,87 +75,58 @@ namespace Grid
 
         inline void Draw(GameCamera::Camera& camera)
         {
-            for (int y = 0; y < height; y++)
+            for (auto& [coordinate, cell] : cells)
             {
-                for (int x = 0; x < width; x++)
+                Rectangle rectangle = 
                 {
-                    Vector2Int coordinate = Vector2Int{x,y};
-                    Cell* cell = &cells[coordinate];
-                    Rectangle rectangle = 
-                    {
-                        (float)cell->worldPosition.x, 
-                        (float)cell->worldPosition.y , 
-                        (float)cellSize, 
-                        (float)cellSize
-                    };
+                    (float)cell.worldPosition.x, 
+                    (float)cell.worldPosition.y , 
+                    (float)cellSize, 
+                    (float)cellSize
+                };
 
-                    DrawTexturePro
-                    (
-                        *groundSprite.texture,
-                        groundSprite.source,
-                        rectangle,
-                        { 0,0 },
-                        0.0f,
-                        WHITE
-                    );
-                    //DrawRectangleRec(rectangle, PALETTE_BLACK);
-                    //DrawRectangleLinesEx(rectangle, 0.5f / camera.rlCamera.zoom, PALETTE_LIGHT_GREEN);
+                DrawTexturePro
+                (
+                    *groundSprite.texture,
+                    groundSprite.source,
+                    rectangle,
+                    { 0,0 },
+                    0.0f,
+                    WHITE
+                );
+                //DrawRectangleRec(rectangle, PALETTE_BLACK);
+                //DrawRectangleLinesEx(rectangle, 0.5f / camera.rlCamera.zoom, PALETTE_LIGHT_GREEN);
 
-                    //Color color = cell->mouseOver ? SKYBLUE : GRAY;
+                //Color color = cell->mouseOver ? SKYBLUE : GRAY;
                     
-                    /*if (cell->clockwise)
-                    {
-                        DrawText("C", x * cellSize, y * cellSize, 10, BLACK);
-                    }
-                    else
-                    {
-                        DrawText("CC", x * cellSize, y * cellSize, 10, BLACK);
-                    }*/
-
-                    // Coord debug
-                    //std::string strX = std::to_string(coordinate.x);
-                    //std::string strY = std::to_string(coordinate.y);
-                    //std::string coordinateText = strX + "," + strY;
-                    //DrawText(coordinateText.c_str(), x * cellSize, y * cellSize, 10, BLACK);
+                /*if (cell->clockwise)
+                {
+                    DrawText("C", x * cellSize, y * cellSize, 10, BLACK);
                 }
+                else
+                {
+                    DrawText("CC", x * cellSize, y * cellSize, 10, BLACK);
+                }*/
+
+                // Coord debug
+                //std::string strX = std::to_string(coordinate.x);
+                //std::string strY = std::to_string(coordinate.y);
+                //std::string coordinateText = strX + "," + strY;
+                //DrawText(coordinateText.c_str(), x * cellSize, y * cellSize, 10, BLACK);
             }
         }
     };
 
-    inline Grid Init(i32 level, i32 width, i32 height, i32 cellSize)
+    Grid Init(i32 level, i32 width, i32 height, i32 cellSize);
+    void AddToGrid(Grid& grid, Vector2Int topLeftCoordinate, i32 width, i32 height);
+
+    inline Vector2 GetWorldPosition(Vector2Int coordinate)
     {
-        Grid grid;
-        grid.level = level;
-        grid.width = width;
-        grid.height = height;
-        grid.cellSize = cellSize;
-        
-        Texture2D* texture = Textures::Load("res/sprites/floor_tile.png");
-        grid.groundSprite = Textures::CreateSprite
-        (
-            texture, 
-            { 0,0,CELL_SIZE,CELL_SIZE }, 
-            { CELL_SIZE / 2, CELL_SIZE / 2 }, 
-            0.0f, 
-            1.0f, 
-            WHITE
-        );
+        return { (float)(coordinate.x * CELL_SIZE), (float)(coordinate.y * CELL_SIZE) };
+    }
 
-        for (int y = 0; y < grid.height; y++)
-        {
-            for (int x = 0; x <grid.width; x++)
-            {
-                Vector2Int coordinate = {x,y};
-                Cell cell = 
-                {
-                    .level = level,
-                    .coordinate = coordinate,
-                    .worldPosition = grid.GetWorldPosition(coordinate)
-                };
-                grid.cells[coordinate] = cell;
-            }
-        }
-
-        return grid;
+    inline Vector2Int GetCoordinate(Vector2 worldPosition)
+    {
+        return { i32(floor(worldPosition.x / CELL_SIZE)), i32(floor(worldPosition.y / CELL_SIZE)) };
     }
 }
