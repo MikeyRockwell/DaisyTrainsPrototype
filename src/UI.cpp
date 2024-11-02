@@ -21,9 +21,9 @@ namespace UI
 
             switch (state.buttons[i].type)
             {
-            case NONE:
+            case REMOVE_TRAIN:
             {
-                state.buttons[i].sprite = Trains::resources.carSprite;
+                state.buttons[i].sprite = Trains::resources.removeTrain;
             } break;
             case RAIL:
             {
@@ -37,7 +37,7 @@ namespace UI
             {
                 state.buttons[i].sprite = Textures::CreateSprite
                 (
-                    Mines::resources.mineTextures[PINK_CARGO],
+                    Mines::resources.mineTextures[YELLOW_CARGO],
                     { 0,0,CELL_SIZE, CELL_SIZE },
                     { CELL_SIZE / 2, CELL_SIZE / 2 },
                     0.0f,
@@ -75,6 +75,15 @@ namespace UI
             mouseOver = mouseOver || state.buttons[i].hovered;
             if (state.buttons[i].hovered && IsMouseButtonPressed(0))
             {
+                if (state.buttons[i].type == REMOVE_TRAIN)
+                {
+                    if (Game::GetLevel().trainCount == 0)
+                    {
+                        Trains::RemoveTrain(Game::GetLevel().number);
+                        Game::GetLevel().trainCount++;
+                    }
+                }
+
                 state.buttons[i].selected = !state.buttons[i].selected;
                 state.buildType = state.buttons[i].type;
 
@@ -104,11 +113,12 @@ namespace UI
 
     void DrawScreenSpace()
     {
+        Game::Level& focusedLevel = Game::GetLevel();
         // Draw the toolbar...
         for (int i = 0; i < COUNT; i++)
         {
             Button& button = state.buttons[i];
-            Color color = button.selected ? PALETTE_ORANGE : button.hovered ? PALETTE_BLUE : PALETTE_LIGHT_GRAY;
+            Color color = button.selected ? PALETTE_GREEN : button.hovered ? PALETTE_PURPLE : PALETTE_BLACK;
             DrawRectangleRec(button.rectangle, color);
             DrawTexturePro
             (
@@ -119,25 +129,25 @@ namespace UI
                 0.0f,
                 WHITE
             );
-            DrawRectangleLinesEx(button.rectangle, 1, BLACK);
+            DrawRectangleLinesEx(button.rectangle, 2, PALETTE_WHITE);
             if (button.type == TRAIN)
             {
-                std::string trainCount = std::to_string(Trains::state.trainsAvailable);
+                std::string trainCount = std::to_string(focusedLevel.trainCount);
                 DrawText(trainCount.c_str(), button.rectangle.x + 10, button.rectangle.y + 10, 35, PALETTE_WHITE);
             }
             if (button.type == RAIL)
             {
-                std::string trackCount = std::to_string(Rail::railState.railAvailable);
+                std::string trackCount = std::to_string(focusedLevel.railCount);
                 DrawText(trackCount.c_str(), button.rectangle.x + 10, button.rectangle.y + 10, 35, PALETTE_WHITE);
             }
             if (button.type == MINE)
             {
-                std::string mineCount = std::to_string(Mines::state.minesAvailable);
+                std::string mineCount = std::to_string(focusedLevel.mineCount);
                 DrawText(mineCount.c_str(), button.rectangle.x + 10, button.rectangle.y + 10, 35, PALETTE_WHITE);
             }
             if (button.type == STATION)
             {
-                std::string stationCount = std::to_string(Mines::state.stationsAvailable);
+                std::string stationCount = std::to_string(focusedLevel.stationCount);
                 DrawText(stationCount.c_str(), button.rectangle.x + 10, button.rectangle.y +10, 35, PALETTE_WHITE);
             }
 
@@ -147,7 +157,7 @@ namespace UI
         const char* buildType = "NONE";
         switch (state.buildType)
         {
-        case NONE: buildType = "NONE"; break;
+        case REMOVE_TRAIN: buildType = "NONE"; break;
         case RAIL: buildType = "RAIL"; break;
         case TRAIN: buildType = "TRAIN"; break;
         case MINE: buildType = "MINE"; break;

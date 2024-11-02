@@ -18,7 +18,7 @@ int main()
 
 	InitWindow(screenWidth, screenHeight, "Connex");
 
-    SetTargetFPS(60);
+    //SetTargetFPS(60);
 	
 	Game::Init();
     Rail::Init();
@@ -40,18 +40,18 @@ int main()
 
 		BeginDrawing();
         BeginMode2D(Game::state.camera.rlCamera);
-		ClearBackground(PALETTE_DARK_GRAY);
+		ClearBackground(PALETTE_BLACK);
 
 		Grid::Draw(Game::state.grid, Game::state.camera);
 		Rail::Draw(0);
 		Trains::Draw(0);
 		Mines::Draw(0);
+		Game::Draw();
 
 		UI::DrawWorldSpace();
 
         EndMode2D();
-
-		Game::Draw();
+		DrawFPS(20, 20);
         UI::DrawScreenSpace();
 
 		EndDrawing();

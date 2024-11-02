@@ -5,7 +5,7 @@
 namespace GameCamera
 {
     const float MIN_ZOOM = 0.5f;
-    const float MAX_ZOOM = 2.0f;
+    const float MAX_ZOOM = 5.0f;
     const float ZOOM_INCREMENT = 0.05f;
 
     struct Camera
@@ -19,7 +19,6 @@ namespace GameCamera
         float zoomTarget;
     };
 
-    void Init(Camera& camera, Vector2 target, Vector2 offset, float zoom);
     void Update(Camera& camera);
 
     inline Vector2 GetWorldMousePosition(Camera& camera)

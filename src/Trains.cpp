@@ -28,14 +28,65 @@ namespace Trains
             WHITE
         );
 
-        texture = Textures::Load("res/sprites/train_car.png");
+        texture = Textures::Load("res/sprites/train_car_green.png");
         width = texture->width;
         height = texture->height;
-        resources.carSprite = Textures::CreateSprite
+        resources.carSprites[GREEN_CARGO] = Textures::CreateSprite
         (
             texture,
             { 0,0, (float)width, (float)height },
             { (float)width / 2, (float)height / 2 },
+            0.0f,
+            1.0f,
+            WHITE
+        );
+        texture = Textures::Load("res/sprites/train_car_yellow.png");
+        resources.carSprites[YELLOW_CARGO] = Textures::CreateSprite
+        (
+            texture,
+            { 0,0, (float)width, (float)height },
+            { (float)width / 2, (float)height / 2 },
+            0.0f,
+            1.0f,
+            WHITE
+        );
+        texture = Textures::Load("res/sprites/train_car_purple.png");
+        resources.carSprites[PURPLE_CARGO] = Textures::CreateSprite
+        (
+            texture,
+            { 0,0, (float)width, (float)height },
+            { (float)width / 2, (float)height / 2 },
+            0.0f,
+            1.0f,
+            WHITE
+        );
+        texture = Textures::Load("res/sprites/train_car_pink.png");
+        resources.carSprites[PINK_CARGO] = Textures::CreateSprite
+        (
+            texture,
+            { 0,0, (float)width, (float)height },
+            { (float)width / 2, (float)height / 2 },
+            0.0f,
+            1.0f,
+            WHITE
+        );
+        texture = Textures::Load("res/sprites/train_car_empty.png");
+        resources.carSprites[BLACK_CARGO] = Textures::CreateSprite
+        (
+            texture,
+            { 0,0, (float)width, (float)height },
+            { (float)width / 2, (float)height / 2 },
+            0.0f,
+            1.0f,
+            WHITE
+        );
+
+        texture = Textures::Load("res/sprites/remove_train.png");
+        resources.removeTrain = Textures::CreateSprite
+        (
+            texture,
+            { 0,0, (float)texture->width, (float)texture->height },
+            { (float)texture->width / 2, (float)texture->height / 2 },
             0.0f,
             1.0f,
             WHITE
@@ -60,7 +111,7 @@ namespace Trains
             {
                 state.trainPlacementPosition = Vector2Add(cell->worldPosition, { CELL_SIZE / 2.0f, CELL_SIZE / 2.0f });
 
-                if (IsMouseButtonPressed(0) && state.trainsAvailable > 0)
+                if (IsMouseButtonPressed(0) && Game::GetLevel().trainCount > 0)
                 {
                     TrainEngine& train = state.trains[state.trainCount++];
 
@@ -70,14 +121,14 @@ namespace Trains
                     train.maxSpeed = 170.0f;
 
                     train.transform.entryPosition  = train.transform.worldPosition;
-                    train.transform.targetPosition = Rail::GetNextDestinationPoint(cell);
+                    train.transform.targetPosition = Rail::GetNextDestinationPoint(cell, train.transform.worldPosition);
                     train.transform.distanceToNextCell = Vector2Distance(train.transform.worldPosition, train.transform.targetPosition);
                     if (cell->railType != Rail::RailType::VERTICAL && cell->railType != Rail::RailType::HORIZONTAL)
                     {
                         train.transform.distanceToNextCell *= 1.5f;
                     }
                     train.transform.distanceTravelled = 0.0f;
-                    train.transform.nextCell = Rail::GetNextCell(cell);
+                    train.transform.nextCell = Rail::GetNextCell(cell, train.transform.worldPosition);
 
                     train.carCount = 8;
                     for (int i = 0; i < train.carCount; i++)
@@ -91,6 +142,8 @@ namespace Trains
                         car.transform.distanceTravelled = 0.0f;
                         car.transform.nextCell = train.transform.nextCell;
                     }
+
+                    Game::GetLevel().trainCount--;
                 }
             }
 		}
@@ -201,7 +254,7 @@ namespace Trains
             abs(transform.tValue - parentTransform.tValue) < 0.15f)
         {
             // Just offset the t value
-            car.transform.tValue = parentTransform.tValue - 0.53f;
+            car.transform.tValue = parentTransform.tValue - 0.75f;
             transform.distanceTravelled = transform.distanceToNextCell * car.transform.tValue;
         }
         else
@@ -261,10 +314,10 @@ namespace Trains
         transform.currentCell = transform.nextCell;
         transform.worldPosition = transform.targetPosition;
         transform.entryPosition = transform.worldPosition;
-        transform.targetPosition = Rail::GetNextDestinationPoint(transform.nextCell);
+        transform.targetPosition = Rail::GetNextDestinationPoint(transform.nextCell, transform.worldPosition);
         transform.distanceToNextCell = Vector2Distance(transform.worldPosition, transform.targetPosition);
         transform.distanceTravelled = 0.0f;
-        transform.nextCell = Rail::GetNextCell(transform.nextCell);
+        transform.nextCell = Rail::GetNextCell(transform.nextCell, transform.worldPosition);
     }
 
 	void Draw(i32 level)
@@ -284,6 +337,7 @@ namespace Trains
         for (int i = 0; i < state.trainCount; i++)
         {
             TrainEngine& train = state.trains[i];
+            
             Color color = WHITE;
             Rectangle destination =
             {
@@ -292,71 +346,59 @@ namespace Trains
                 (float)resources.trainSprite.texture->width,
                 (float)resources.trainSprite.texture->height
             };
-            DrawTexturePro
-            (
-                *resources.trainSprite.texture,
-                resources.trainSprite.source,
-                destination,
-                { resources.trainSprite.origin.x, resources.trainSprite.origin.y },
-                train.transform.rotation,
-                color
-            );
-
-            for (int j = 0; j < train.carCount; j++)
+            if (train.transform.currentCell->hasCrossing &&
+                abs(train.transform.entryPosition.x - train.transform.targetPosition.x) > 0)
             {
-                Car& car = train.cars[j];
-                Color color = car.loaded ? PALETTE[car.cargoType] : PALETTE_LIGHT_GRAY;
-                destination =
-                {
-                    car.transform.worldPosition.x,
-                    car.transform.worldPosition.y,
-                    (float)resources.carSprite.texture->width,
-                    (float)resources.carSprite.texture->height
-                };
+                // THE TRAIN IS MOVING HORIZONTALLY THROUGH A TUNNEL
+                // dont draw the train
+            }
+            else
+            {
                 DrawTexturePro
                 (
-                    *resources.carSprite.texture,
-                    resources.carSprite.source,
+                    *resources.trainSprite.texture,
+                    resources.trainSprite.source,
                     destination,
-                    { resources.carSprite.origin.x, resources.carSprite.origin.y },
-                    car.transform.rotation,
+                    { resources.trainSprite.origin.x, resources.trainSprite.origin.y },
+                    train.transform.rotation,
                     color
                 );
             }
 
-
-            // DEBUG
-            // 
-            //DrawPoly(train.worldPosition, 3, 12, train.rotation, color);
-            //DrawCircleV(train.targetPosition, 5, GREEN);
-            //DrawCircleV(train.entryPosition, 5, YELLOW);
-            //DrawCircleV(train.controlPoint, 5, MAGENTA);
-            // Current cell debug
-            //Grid::Cell* cell = &grid.cells[train.currentCell->coordinate];
-            //Rectangle rectangle =
-            //{
-            //    (float)cell->worldPosition.x,
-            //    (float)cell->worldPosition.y ,
-            //    (float)grid.cellSize,
-            //    (float)grid.cellSize
-            //};
-            //DrawRectangleRec(rectangle, Fade(YELLOW, 0.5f));
-
-            //// Next cell debug
-            //if (train.nextCell)
-            //{
-            //    cell = &grid.cells[train.nextCell->coordinate];
-            //    rectangle =
-            //    {
-            //        (float)cell->worldPosition.x,
-            //        (float)cell->worldPosition.y ,
-            //        (float)grid.cellSize,
-            //        (float)grid.cellSize
-            //    };
-            //    DrawRectangleRec(rectangle, Fade(GREEN, 0.5f));
-            //}
-
+            for (int j = 0; j < train.carCount; j++)
+            {
+                Car& car = train.cars[j];
+                if (car.transform.currentCell->hasCrossing &&
+                    abs(car.transform.entryPosition.x - car.transform.targetPosition.x) > 0)
+                {
+                    // THE CAR IS MOVING HORIZONTALLY THROUGH A TUNNEL
+                    // dont draw the CAR
+                }
+                else
+                {
+                    Textures::Sprite sprite = resources.carSprites[BLACK_CARGO];
+                    if (car.loaded)
+                    {
+                        sprite = resources.carSprites[car.cargoType];
+                    }
+                    destination =
+                    {
+                        car.transform.worldPosition.x,
+                        car.transform.worldPosition.y,
+                        (float)sprite.texture->width,
+                        (float)sprite.texture->height
+                    };
+                    DrawTexturePro
+                    (
+                        *sprite.texture,
+                        sprite.source,
+                        destination,
+                        { sprite.origin.x, sprite.origin.y},
+                        car.transform.rotation,
+                        color
+                    );
+                }
+            }
         }
-
 	}
 }

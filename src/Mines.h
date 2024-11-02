@@ -74,15 +74,14 @@ namespace Mines
 
     struct MineState
     {
-        i32 minesAvailable = 1;
-        i32 stationsAvailable = 1;
-
         bool buildableCell = false;
         bool flipped = false;
 
         std::unordered_map<Vector2Int, Mine,      Vector2IntHash, Vector2IntEqual> mines;
         std::unordered_map<Vector2Int, Station,   Vector2IntHash, Vector2IntEqual> stations;
         std::unordered_map<Vector2Int, Stack,     Vector2IntHash, Vector2IntEqual> stacks;
+
+        Stack* adjacentStack = nullptr;
     };
     extern MineState state;
     
@@ -90,8 +89,7 @@ namespace Mines
     {
         Texture* mineTextures[PALETTE_SIZE];
         Texture* stationTextures[PALETTE_SIZE];
-        Texture* converterTextures[PALETTE_SIZE];
-        Texture* converterSymbolTexture;
+        Texture* containerTextures[PALETTE_SIZE];
 
         Texture* mineGhostTexture;
         Texture* stationGhostTexture;
@@ -110,4 +108,5 @@ namespace Mines
     void     DrawStack      (Stack& stack);
     
     bool IsRailCompatible(Grid::Cell* cell);
+    bool IsMineCompatible(Grid::Cell* cell, bool flipped);
 }

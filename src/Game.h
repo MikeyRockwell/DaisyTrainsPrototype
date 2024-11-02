@@ -9,12 +9,12 @@
 
 namespace Game
 {
-    const i32 LEVEL_COUNT = 5;
+    const i32 LEVEL_COUNT = 11;
     const i32 MAX_STACKS = 8;
 
     struct Clock
     {
-        float deltaTime;
+        float deltaTime = 0.0f;
         float timeScale = 1.0f;
     };
 
@@ -39,11 +39,12 @@ namespace Game
         i32 stationCount = 1;
         i32 trainCount   = 1;
         i32 carCount     = 8;
-        i32 trackCount   = 8;
+        i32 railCount   = 8;
 
         std::vector<UnlockStack> unlockStacks;
 
         Vector2 UIPosition = { 0,0 };
+        Rectangle bounds;
     };
 
     struct GameState
@@ -53,11 +54,12 @@ namespace Game
         GameCamera::Camera camera;
         Vector2 mouseWorldPosition;
         
-        Grid  ::Grid grid;
+        Grid::Grid grid;
+        i32 focusedLevel = 0;
         
         i32 currency = 0;
-        i32 currentLevel = 0;
         Level levels[LEVEL_COUNT];
+
     };
     extern GameState state;
 
@@ -66,9 +68,9 @@ namespace Game
     void Update();
     void Draw();
 
-    inline Level& GetLevel(i32 levelNumber)
+    inline Level& GetLevel()
     {
-        return state.levels[levelNumber];
+        return state.levels[state.focusedLevel];
     }
 
     void CheckLevelStates();

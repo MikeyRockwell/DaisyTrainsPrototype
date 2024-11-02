@@ -76,18 +76,19 @@ namespace Trains
 
     struct TrainState
     {
-        i32 trainsAvailable = 1;
-
         Vector2 trainPlacementPosition;
         i32 trainCount = 0;
         TrainEngine trains[MAX_TRAINS];
+        
+        TrainEngine levelElevenTrains[4];
     };
     extern TrainState state;
 
     struct TrainResources
     {
         Textures::Sprite trainSprite;
-        Textures::Sprite carSprite;
+        Textures::Sprite carSprites[PALETTE_SIZE];
+        Textures::Sprite removeTrain;
     };
     extern TrainResources resources;
 
@@ -97,5 +98,11 @@ namespace Trains
     void UpdateCarTransform (i32 level, Car& car, TrainTransform& parentTransform, float speed);
     void EnterCell          (TrainTransform& transform);
     void Draw               (i32 level);
+
+    inline void RemoveTrain(i32 index)
+    {
+        state.trains[index] = state.trains[state.trainCount - 1];
+        state.trainCount--;
+    }
 
 }

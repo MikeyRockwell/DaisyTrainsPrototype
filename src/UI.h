@@ -5,14 +5,14 @@ namespace UI
 {
     const i32 BUTTON_SIZE = 80;
     const Color normalColor   = PALETTE_LIGHT_GRAY;
-    const Color hoveredColor  = PALETTE_BLUE;
+    const Color hoveredColor  = PALETTE_PURPLE;
     const Color selectedColor = PALETTE_ORANGE;
 
     enum BuildType
     {
-        NONE,
         RAIL,
         TRAIN,
+        REMOVE_TRAIN,
         MINE,
         STATION,
         COUNT

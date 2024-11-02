@@ -28,6 +28,7 @@ namespace Rail
         TOP_TO_RIGHT    =  3,
         BOTTOM_TO_RIGHT =  4,
         BOTTOM_TO_LEFT  =  5,
+        CROSSING        =  6
     };
 
     struct UIButton
@@ -54,7 +55,6 @@ namespace Rail
 
     struct RailState
     {
-        i32 railAvailable = 10;
         std::unordered_map<Vector2Int, Rail, Vector2IntHash, Vector2IntEqual> coordinateToRailMap;
     };
     extern RailState railState;
@@ -68,6 +68,7 @@ namespace Rail
         bool canBuild = false;
         Textures::Sprite railSpritesClockwise[RAIL_TYPES];
         Textures::Sprite railSpritesCounterClockwise[RAIL_TYPES];
+        Textures::Sprite crossingSprite;
     };
     extern UIState uiState;
 
@@ -140,6 +141,15 @@ namespace Rail
             cell->connectionPositions[0] = { GetCellConnectionPoint(cell, SOUTH) };
             cell->connectionPositions[1] = { GetCellConnectionPoint(cell, EAST) };
         }
+        if (type == CROSSING)
+        {
+            cell->connectionPoints.set(NORTH);
+            cell->connectionPoints.set(EAST);
+            cell->connectionPoints.set(SOUTH);
+            cell->connectionPoints.set(WEST);
+            cell->hasCrossing = true;
+        }
+        // THIS!
         cell->railType = type;
     }
 
@@ -202,7 +212,7 @@ namespace Rail
     }
 
     Vector2 GetNextDestinationPoint(Grid::Cell* cell, Vector2 entryWorldPoint);
-    Grid::Cell* GetNextCell(Grid::Cell* cell);
+    Grid::Cell* GetNextCell(Grid::Cell* cell, Vector2 worldPositionIn);
 
     inline bool CanBuildRail(Grid::Cell* cell)
     {
@@ -223,4 +233,7 @@ namespace Rail
         }
         return true;
     }
+
+    void CreateRailSegment(Grid::Cell* cell, RailType type);
+    
 }

@@ -67,6 +67,11 @@ namespace Rail
         // BOTTOM TO LEFT
         source = { CELL_SIZE * 5, CELL_SIZE, CELL_SIZE, CELL_SIZE };
         uiState.railSpritesCounterClockwise[BOTTOM_TO_LEFT] = Textures::CreateSprite(texture, source, origin, 0.0f, 1.0f, WHITE);
+
+        // Crossing
+        texture = Textures::Load("res/sprites/crossing.png");
+        source = { 0, 0, CELL_SIZE, CELL_SIZE };
+        uiState.crossingSprite = Textures::CreateSprite(texture, source, origin, 0.0f, 1.0f, WHITE);
     }
 
     void Update(i32 level)
@@ -79,7 +84,7 @@ namespace Rail
         Vector2 cellCenter = { cell->worldPosition.x + grid.cellSize / 2, cell->worldPosition.y + grid.cellSize / 2 };
         uiState.canBuild = false;
         // Current rail segment type
-        RailType flags = RailType::NONE;
+        RailType type = RailType::NONE;
 
         /*=========================================================
             RAIL MOUSE OVER GRID
@@ -88,37 +93,37 @@ namespace Rail
         // CALCULATE THE UI RAIL SEGMENT
         if (uiState.selectedType == RailType::VERTICAL)
         {
-            flags = RailType::VERTICAL;
+            type = RailType::VERTICAL;
             uiState.selectedRail.start = { cell->worldPosition.x + grid.cellSize / 2, cell->worldPosition.y };
             uiState.selectedRail.end = { cell->worldPosition.x + grid.cellSize / 2, cell->worldPosition.y + grid.cellSize };
         }
         if (uiState.selectedType == RailType::HORIZONTAL)
         {
-            flags = RailType::HORIZONTAL;
+            type = RailType::HORIZONTAL;
             uiState.selectedRail.start = { cell->worldPosition.x, cell->worldPosition.y + grid.cellSize / 2 };
             uiState.selectedRail.end = { cell->worldPosition.x + grid.cellSize, cell->worldPosition.y + grid.cellSize / 2 };
         }
         if (uiState.selectedType == RailType::TOP_TO_LEFT)
         {
-            flags = RailType::TOP_TO_LEFT;
+            type = RailType::TOP_TO_LEFT;
             uiState.selectedRail.start = { cell->worldPosition.x + grid.cellSize / 2, cell->worldPosition.y };
             uiState.selectedRail.end = { cell->worldPosition.x, cell->worldPosition.y + grid.cellSize / 2 };
         }
         if (uiState.selectedType == RailType::TOP_TO_RIGHT)
         {
-            flags = RailType::TOP_TO_RIGHT;
+            type = RailType::TOP_TO_RIGHT;
             uiState.selectedRail.start = { cell->worldPosition.x + grid.cellSize / 2, cell->worldPosition.y };
             uiState.selectedRail.end = { cell->worldPosition.x + grid.cellSize, cell->worldPosition.y + grid.cellSize / 2 };
         }
         if (uiState.selectedType == RailType::BOTTOM_TO_RIGHT)
         {
-            flags = RailType::BOTTOM_TO_RIGHT;
+            type = RailType::BOTTOM_TO_RIGHT;
             uiState.selectedRail.start = { cell->worldPosition.x + grid.cellSize / 2, cell->worldPosition.y + grid.cellSize };
             uiState.selectedRail.end = { cell->worldPosition.x + grid.cellSize, cell->worldPosition.y + grid.cellSize / 2 };
         }
         if (uiState.selectedType == RailType::BOTTOM_TO_LEFT)
         {
-            flags = RailType::BOTTOM_TO_LEFT;
+            type = RailType::BOTTOM_TO_LEFT;
             uiState.selectedRail.start = { cell->worldPosition.x + grid.cellSize / 2, cell->worldPosition.y + grid.cellSize };
             uiState.selectedRail.end = { cell->worldPosition.x, cell->worldPosition.y + grid.cellSize / 2 };
         }
@@ -126,8 +131,14 @@ namespace Rail
         /*=========================================================
             CREATE RAIL SEGMENT
         =========================================================*/
-        uiState.canBuild = CanBuildRail(cell);
-        
+        if (Game::GetLevel().railCount == 0 || Game::GetLevel().trainCount == 0)
+        {
+            uiState.canBuild = false;
+        }
+        else
+        {
+            uiState.canBuild = CanBuildRail(cell);
+        }
         if (!Mines::IsRailCompatible(cell))
         {
             uiState.canBuild = false;
@@ -135,15 +146,7 @@ namespace Rail
 
         if (IsMouseButtonPressed(0) && uiState.canBuild)
         {
-            Rail rail{};
-            rail.type  = uiState.selectedType;
-            rail.start = uiState.selectedRail.start;
-            rail.end   = uiState.selectedRail.end;
-            rail.coordinate = cell->coordinate;
-            cell->clockwise = uiState.clockwise;
-            railState.coordinateToRailMap[cell->coordinate] = rail;
-            SetConnectionPoints(cell, flags);
-            railState.railAvailable--;
+            CreateRailSegment(cell, type);
         }
 
         /*=========================================================
@@ -163,9 +166,9 @@ namespace Rail
         /*=========================================================
             DELETE RAIL SEGMENT
         =========================================================*/
-        if (IsMouseButtonDown(1))
+        if (IsMouseButtonDown(1) && Game::GetLevel().trainCount > 0)
         {
-            if (cell->railType != -1)
+            if (cell->railType != -1 && cell->railType != CROSSING)
             {
                 cell->railType = -1;
                 cell->connectionPoints.reset();
@@ -173,14 +176,14 @@ namespace Rail
                 cell->connectionPositions[1] = { -1,-1 };
                 // Remove the rail from the rail state
                 railState.coordinateToRailMap.erase(cell->coordinate);
-                railState.railAvailable++;
+                Game::GetLevel().railCount++;
             }
         }
 
         /*========================================================
             FLIP RAIL SEGMENT DIRECTION
         =========================================================*/
-        if (IsKeyPressed(KEY_F))
+        if (IsKeyPressed(KEY_F) && Game::Level().trainCount > 0)
         {
             if (cell->railType != -1)
             {
@@ -200,17 +203,17 @@ namespace Rail
         // DRAW THE RAIL GHOST
         if (UI::state.buildType == UI::RAIL && cell->initialized && uiState.selectedType != NONE)
         {
-            Color ghostColor = uiState.canBuild ? PALETTE_BLUE : PALETTE_ORANGE;
+            Color ghostColor = uiState.canBuild ? PALETTE_GREEN : PALETTE_BLACK;
 
             if (cell->hasMine || cell->hasStation)
             {
                 if (!Mines::IsRailCompatible(cell))
                 {
-                    ghostColor = PALETTE_ORANGE;
+                    ghostColor = PALETTE_BLACK;
                 }
                 else
                 {
-                    ghostColor = PALETTE_BLUE;
+                    ghostColor = PALETTE_GREEN;
                 }
             }
 
@@ -248,11 +251,11 @@ namespace Rail
             }
         }
 
-
         // DRAW THE RAILS
         for (auto& [coordinate, rail] : railState.coordinateToRailMap)
         {
             Grid::Cell* cell = grid.CoordinateToCell(rail.coordinate);
+
             Rectangle destination =
             {
                 cell->worldPosition.x,
@@ -261,7 +264,19 @@ namespace Rail
                 CELL_SIZE
             };
 
-            if (cell->clockwise)
+            if (cell->hasCrossing)
+            {
+                DrawTexturePro
+                (
+                    *uiState.crossingSprite.texture,
+                    uiState.crossingSprite.source,
+                    destination,
+                    { 0,0 },
+                    0.0f,
+                    uiState.crossingSprite.tint
+                );
+            }
+            else if (cell->clockwise)
             {
                 DrawTexturePro
                 (
@@ -320,7 +335,10 @@ namespace Rail
         if (cell->hasCrossing)
         {
             ConnectionPoint in = WorldToConnectionPoint(cell, worldEntryPoint);
-            if 
+            if (in == NORTH) return bot;
+            if (in == SOUTH) return top;
+            if (in == WEST)  return right;
+            if (in == EAST)  return left;
         }
 
         // These coordinates are relative to the cell top left corner
@@ -348,10 +366,20 @@ namespace Rail
         std::cout << "Error: GetNextDestinationPoint" << std::endl;
     }
 
-    Grid::Cell* GetNextCell(Grid::Cell* cell)
+    Grid::Cell* GetNextCell(Grid::Cell* cell, Vector2 worldPositionIn)
     {
         Grid::Grid& grid = Game::state.grid;
         RailType railPiece = (RailType)cell->railType;
+
+        if (cell->hasCrossing)
+        {
+            ConnectionPoint in = WorldToConnectionPoint(cell, worldPositionIn);
+            if (in == NORTH) return grid.CoordinateToCell({ cell->coordinate.x, cell->coordinate.y + 1 });
+            if (in == WEST)  return grid.CoordinateToCell({ cell->coordinate.x + 1, cell->coordinate.y });
+            if (in == SOUTH) return grid.CoordinateToCell({ cell->coordinate.x, cell->coordinate.y - 1 });
+            if (in == EAST)  return grid.CoordinateToCell({ cell->coordinate.x - 1, cell->coordinate.y });
+        }
+
 
         if (cell->clockwise)
         {
@@ -373,5 +401,17 @@ namespace Rail
         }
         
         return nullptr;
+    }
+    void CreateRailSegment(Grid::Cell* cell, RailType type)
+    {
+        Rail rail{};
+        rail.type = uiState.selectedType;
+        rail.start = uiState.selectedRail.start;
+        rail.end = uiState.selectedRail.end;
+        rail.coordinate = cell->coordinate;
+        cell->clockwise = uiState.clockwise;
+        railState.coordinateToRailMap[cell->coordinate] = rail;
+        SetConnectionPoints(cell, type);
+        Game::GetLevel().railCount--;
     }
 }

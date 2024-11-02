@@ -10,17 +10,23 @@ namespace Grid
         grid.height = height;
         grid.cellSize = cellSize;
         grid.worldPosition = { 0,0 };
+        
+        Texture2D* texture = Textures::Load("res/sprites/floor_tile_00.png");
+        grid.groundSprite[0] = Textures::CreateSprite
+        (texture, { 0,0,CELL_SIZE,CELL_SIZE }, { CELL_SIZE / 2, CELL_SIZE / 2 }, 0.0f, 1.0f,WHITE);
+        texture = Textures::Load("res/sprites/floor_tile_01.png");
+        grid.groundSprite[1] = Textures::CreateSprite
+        (texture, { 0,0,CELL_SIZE,CELL_SIZE }, { CELL_SIZE / 2, CELL_SIZE / 2 }, 0.0f, 1.0f, WHITE);
+        texture = Textures::Load("res/sprites/floor_tile_02.png");
+        grid.groundSprite[2] = Textures::CreateSprite
+        (texture, { 0,0,CELL_SIZE,CELL_SIZE }, { CELL_SIZE / 2, CELL_SIZE / 2 }, 0.0f, 1.0f, WHITE);
+        texture = Textures::Load("res/sprites/floor_tile_03.png");
+        grid.groundSprite[3] = Textures::CreateSprite
+        (texture, { 0,0,CELL_SIZE,CELL_SIZE }, { CELL_SIZE / 2, CELL_SIZE / 2 }, 0.0f, 1.0f, WHITE);
+        texture = Textures::Load("res/sprites/floor_tile_04.png");
+        grid.groundSprite[4] = Textures::CreateSprite
+        (texture, { 0,0,CELL_SIZE,CELL_SIZE }, { CELL_SIZE / 2, CELL_SIZE / 2 }, 0.0f, 1.0f, WHITE);
 
-        Texture2D* texture = Textures::Load("res/sprites/floor_tile.png");
-        grid.groundSprite = Textures::CreateSprite
-        (
-            texture,
-            { 0,0,CELL_SIZE,CELL_SIZE },
-            { CELL_SIZE / 2, CELL_SIZE / 2 },
-            0.0f,
-            1.0f,
-            WHITE
-        );
         texture = Textures::Load("res/sprites/obstacle.png");
         grid.obstacleSprite = Textures::CreateSprite
         (
@@ -42,7 +48,8 @@ namespace Grid
                     .level = level,
                     .initialized = 1,
                     .coordinate = coordinate,
-                    .worldPosition = Vector2Add(GetWorldPosition(coordinate), grid.worldPosition)
+                    .worldPosition = Vector2Add(GetWorldPosition(coordinate), grid.worldPosition),
+                    .groundSpriteIndex = GetRandomValue(0, 4),
                 };
                 grid.cells[coordinate] = cell;
             }
@@ -66,7 +73,8 @@ namespace Grid
                     .level = grid.level,
                     .initialized = 1,
                     .coordinate = coordinate,
-                    .worldPosition = Vector2Add(GetWorldPosition(coordinate), grid.worldPosition)
+                    .worldPosition = Vector2Add(GetWorldPosition(coordinate), grid.worldPosition),
+                    .groundSpriteIndex = GetRandomValue(0, 4),
                 };
                 grid.cells[coordinate] = cell;
             }
@@ -104,8 +112,8 @@ namespace Grid
             {
                 DrawTexturePro
                 (
-                    *grid.groundSprite.texture,
-                    grid.groundSprite.source,
+                    *grid.groundSprite[cell.groundSpriteIndex].texture,
+                    { 0, 0, CELL_SIZE, CELL_SIZE },
                     rectangle,
                     { 0,0 },
                     0.0f,
