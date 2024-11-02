@@ -29,6 +29,7 @@ namespace UI
 
     struct State
     {
+        bool mouseOverUI = false;
         BuildType buildType;
         Button buttons[COUNT];
     };

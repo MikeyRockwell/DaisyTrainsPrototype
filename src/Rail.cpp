@@ -77,7 +77,7 @@ namespace Rail
         Grid::Cell* cell = grid.GetCellAtWorldPosition(mousePosition);
         
         Vector2 cellCenter = { cell->worldPosition.x + grid.cellSize / 2, cell->worldPosition.y + grid.cellSize / 2 };
-        
+        uiState.canBuild = false;
         // Current rail segment type
         RailType flags = RailType::NONE;
 
@@ -126,39 +126,37 @@ namespace Rail
         /*=========================================================
             CREATE RAIL SEGMENT
         =========================================================*/
-        if (IsMouseButtonPressed(0))
+        uiState.canBuild = CanBuildRail(cell);
+        
+        if (!Mines::IsRailCompatible(cell))
         {
-            if 
-            (
-                UI::state.buildType == UI::BuildType::RAIL &&
-                uiState.selectedType != RailType::NONE && 
-                cell->railType == -1 && 
-                Mines::IsRailCompatible(cell) &&
-                railState.railAvailable > 0)
-            {
-                Rail rail{};
-                rail.type = uiState.selectedType;
-                rail.start = uiState.selectedRail.start;
-                rail.end   = uiState.selectedRail.end;
-                rail.coordinate = cell->coordinate;
-                cell->clockwise = uiState.clockwise;
-                railState.coordinateToRailMap[cell->coordinate] = rail;
-                SetConnectionPoints(cell, flags);
-                railState.railAvailable--;
-            }
+            uiState.canBuild = false;
+        }
+
+        if (IsMouseButtonPressed(0) && uiState.canBuild)
+        {
+            Rail rail{};
+            rail.type  = uiState.selectedType;
+            rail.start = uiState.selectedRail.start;
+            rail.end   = uiState.selectedRail.end;
+            rail.coordinate = cell->coordinate;
+            cell->clockwise = uiState.clockwise;
+            railState.coordinateToRailMap[cell->coordinate] = rail;
+            SetConnectionPoints(cell, flags);
+            railState.railAvailable--;
         }
 
         /*=========================================================
             SCROLL TO CHANGE RAIL SEGMENT
         =========================================================*/
-        if (GetMouseWheelMove() > 0)
+        if (IsKeyPressed(KEY_R))
         {
             uiState.selectedType = (RailType)((uiState.selectedType + 1) % RAIL_TYPES);
         }
-        if (GetMouseWheelMove() < 0)
+        /*if (GetMouseWheelMove() < 0)
         {
             uiState.selectedType = (RailType)((uiState.selectedType - 1) % RAIL_TYPES);
-        }
+        }*/
         if (uiState.selectedType < 0) uiState.selectedType = (RailType)(RAIL_TYPES - 1);
         if (uiState.selectedType > RAIL_TYPES - 1) uiState.selectedType = (RailType)0;
 
@@ -182,7 +180,7 @@ namespace Rail
         /*========================================================
             FLIP RAIL SEGMENT DIRECTION
         =========================================================*/
-        if (IsMouseButtonPressed(2))
+        if (IsKeyPressed(KEY_F))
         {
             if (cell->railType != -1)
             {
@@ -190,35 +188,6 @@ namespace Rail
             }
             uiState.clockwise = !uiState.clockwise;
         }
-
-
-        /*=========================================================
-            UPDATE UI BUTTONS
-        =========================================================*/
-        /*for (int i = 0; i < RAIL_TYPES; i++)
-        {
-            if (CheckCollisionPointRec(mousePosition, uiState.buttons[i].bounds))
-            {
-                uiState.buttons[i].hovered = true;
-                uiState.buttons[i].color = RAYWHITE;
-                if (IsMouseButtonPressed(0))
-                {
-                    UI::state.placeTrain = false;
-                    if (uiState.selectedType == i)
-                    {
-                        uiState.selectedType = RailType::NONE;
-                    }
-                    else
-                    {
-                        uiState.selectedType = (RailType)i;
-                    }
-                }
-            }
-            else
-            {
-                uiState.buttons[i].hovered = false;
-            }
-        }*/
     }
 
     void Draw(i32 level)
@@ -229,20 +198,19 @@ namespace Rail
         Grid::Cell* cell = grid.GetCellAtWorldPosition(mouseWorldPosition);
 
         // DRAW THE RAIL GHOST
-        if (uiState.selectedType != RailType::NONE && 
-            UI::state.buildType == UI::RAIL && cell->initialized)
+        if (UI::state.buildType == UI::RAIL && cell->initialized && uiState.selectedType != NONE)
         {
-            Color ghostColor = cell->railType != -1 ? RED : SKYBLUE;
+            Color ghostColor = uiState.canBuild ? PALETTE_BLUE : PALETTE_ORANGE;
 
             if (cell->hasMine || cell->hasStation)
             {
                 if (!Mines::IsRailCompatible(cell))
                 {
-                    ghostColor = RED;
+                    ghostColor = PALETTE_ORANGE;
                 }
                 else
                 {
-                    ghostColor = GREEN;
+                    ghostColor = PALETTE_BLUE;
                 }
             }
 
@@ -253,6 +221,7 @@ namespace Rail
                 CELL_SIZE,
                 CELL_SIZE
             };
+            DrawRectanglePro(bounds, { 0,0 }, 0, ghostColor);
             if (uiState.clockwise)
             {
                 DrawTexturePro
@@ -262,7 +231,7 @@ namespace Rail
                     bounds,
                     { 0,0 },
                     0.0f,
-                    ghostColor
+                    WHITE
                 );
             }
             else
@@ -274,12 +243,11 @@ namespace Rail
                     bounds,
                     { 0,0 },
                     0.0f,
-                    ghostColor
+                    WHITE
                 );
             }
-
-            DrawRectanglePro(bounds, { 0,0 }, 0, Fade(ghostColor, 0.5f));
         }
+
 
         // DRAW THE RAILS
         for (auto& [coordinate, rail] : railState.coordinateToRailMap)
@@ -337,43 +305,7 @@ namespace Rail
         }
     }
 
-    void DrawUI()
-    {   
-
-        // DRAW THE UI BUTTONS
-        for (int i = 0; i < RAIL_TYPES; i++)
-        {
-            UIButton& button = uiState.buttons[i];
-            Color color = DARKGRAY;
-            if (button.hovered && i != uiState.selectedType)
-            {
-                color = ORANGE;
-            }
-            else if (i == uiState.selectedType)
-            {
-                color = YELLOW;
-            }
-
-            DrawRectangleRec(button.bounds, color);
-            DrawRectangleLinesEx(button.bounds, 1, BLACK);
-            
-            DrawTexturePro
-            (
-                *uiState.railSpritesClockwise[i].texture,
-                uiState.railSpritesClockwise[i].source,
-                button.bounds,
-                {0,0},
-                uiState.railSpritesClockwise[i].rotation,
-                uiState.railSpritesClockwise[i].tint
-            );
-        }
-
-        // DRAW CLOCKWISE INDICATOR DEBUG
-        /*const char* clockwise = uiState.clockwise ? "C" : "CC";
-        DrawText(clockwise, 10, 10, 20, uiState.clockwise ? GREEN : RED);*/
-    }
-
-    Vector2 GetNextDestinationPoint(Grid::Cell* cell)
+    Vector2 GetNextDestinationPoint(Grid::Cell* cell, Vector2 worldEntryPoint)
     {
         RailType railPiece = (RailType)cell->railType;
 
@@ -384,6 +316,12 @@ namespace Rail
         Vector2 bot   = { cellCenter.x, cellCenter.y + halfCellSize };
         Vector2 left  = { cellCenter.x - halfCellSize, cellCenter.y };
         Vector2 right = { cellCenter.x + halfCellSize, cellCenter.y };
+
+        if (cell->hasCrossing)
+        {
+            ConnectionPoint in = WorldToConnectionPoint(cell, worldEntryPoint);
+            if 
+        }
 
         // These coordinates are relative to the cell top left corner
         if (cell->clockwise)

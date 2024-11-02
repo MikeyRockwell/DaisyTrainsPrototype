@@ -49,7 +49,7 @@ namespace Trains
         /*===============================================
             CREATE TRAIN
         ===============================================*/
-		if (UI::state.buildType == UI::BuildType::TRAIN)
+		if (UI::state.buildType == UI::BuildType::TRAIN && !UI::state.mouseOverUI)
 		{
 			Rail::uiState.selectedType = Rail::RailType::NONE;
             
@@ -121,11 +121,11 @@ namespace Trains
                     }
                 }
 
+                // Unloading at STATION
                 if (cell->hasStation && car.loaded)
                 {
-                    // Unloading at STATION
                     Mines::Station* station = &Mines::state.stations[cell->coordinate];
-                    if (station->cargoType == car.cargoType)
+                    if (station->cargoType == car.cargoType && station->stack->count != station->stack->capacity)
                     {
                         station->stack->count++;
                         car.loaded = false;

@@ -6,7 +6,6 @@
 #include "UI.h"
 #include "Trains.h"
 
-
 namespace Rail
 {
     const i32 RAIL_TYPES = 6;
@@ -41,12 +40,16 @@ namespace Rail
 
     struct Rail
     {
+        bool removable = true;
+
         RailType type;
         Vector2 start;
         Vector2 end;
-        Vector2Int coordinate;
 
-        //std::vector<Trains::TrainTransform*> trainsOnRail;
+        ConnectionPoint in;
+        ConnectionPoint out;
+
+        Vector2Int coordinate;
     };
 
     struct RailState
@@ -62,7 +65,7 @@ namespace Rail
         UIButton buttons[RAIL_TYPES];
         Rail selectedRail;
         bool clockwise = true;
-
+        bool canBuild = false;
         Textures::Sprite railSpritesClockwise[RAIL_TYPES];
         Textures::Sprite railSpritesCounterClockwise[RAIL_TYPES];
     };
@@ -71,7 +74,6 @@ namespace Rail
     void Init  ();
     void Update(i32 level);
     void Draw  (i32 level);
-    void DrawUI(i32 level);
 
     inline Vector2 GetCellConnectionPoint(Grid::Cell* cell, ConnectionPoint point)
     {
@@ -199,27 +201,26 @@ namespace Rail
         if (closestPoint.x == westPoint.x && closestPoint.y == westPoint.y) return WEST;
     }
 
-  /*  inline void AddTrainToRailState(Trains::TrainEngine& train)
-    {
-        railState.coordinateToRailMap[train.currentCell->coordinate].trainsOnRail.emplace_back(&train);
-    }
-
-    inline void RemoveTrainFromRailState(Trains::TrainEngine& train)
-    {
-        Rail& rail = railState.coordinateToRailMap[train.currentCell->coordinate];
-
-        for (int i = 0; i < rail.trainsOnRail.size(); i++)
-        {
-            if (rail.trainsOnRail[i] == &train)
-            {
-                rail.trainsOnRail.erase(rail.trainsOnRail.begin() + i);
-                return;
-            }
-        }
-        std::cout << "Error: RemoveTrainFromRailState" << std::endl;
-
-    }*/
-
-    Vector2 GetNextDestinationPoint(Grid::Cell* cell);
+    Vector2 GetNextDestinationPoint(Grid::Cell* cell, Vector2 entryWorldPoint);
     Grid::Cell* GetNextCell(Grid::Cell* cell);
+
+    inline bool CanBuildRail(Grid::Cell* cell)
+    {
+        if (UI::state.mouseOverUI) return false;
+        if (UI::state.buildType != UI::BuildType::RAIL) return false;
+        if (uiState.selectedType == RailType::NONE) return false;
+        if (cell->hasObstacle)
+        {
+            return false;
+        }
+        if (cell->initialized == false)
+        {
+            return false;
+        }
+        if (cell->railType != -1)
+        {
+            return false;
+        }
+        return true;
+    }
 }

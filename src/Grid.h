@@ -26,6 +26,7 @@ namespace Grid
         bool hasMine     = false;
         bool hasStation  = false;
         bool hasObstacle = false;
+        bool hasCrossing = false;
         bool buildable   = true;
     };
 
@@ -39,6 +40,7 @@ namespace Grid
         i32 cellSize = 32;
         std::unordered_map<Vector2Int, Cell, Vector2IntHash, Vector2IntEqual> cells;
         Textures::Sprite groundSprite;
+        Textures::Sprite obstacleSprite;
 
         inline Cell* GetCellAtWorldPosition(Vector2 worldPosition)
         {
@@ -72,53 +74,11 @@ namespace Grid
                 cell->selected = !cell->selected;
             }
         }
-
-        inline void Draw(GameCamera::Camera& camera)
-        {
-            for (auto& [coordinate, cell] : cells)
-            {
-                Rectangle rectangle = 
-                {
-                    (float)cell.worldPosition.x, 
-                    (float)cell.worldPosition.y , 
-                    (float)cellSize, 
-                    (float)cellSize
-                };
-
-                DrawTexturePro
-                (
-                    *groundSprite.texture,
-                    groundSprite.source,
-                    rectangle,
-                    { 0,0 },
-                    0.0f,
-                    WHITE
-                );
-                //DrawRectangleRec(rectangle, PALETTE_BLACK);
-                //DrawRectangleLinesEx(rectangle, 0.5f / camera.rlCamera.zoom, PALETTE_LIGHT_GREEN);
-
-                //Color color = cell->mouseOver ? SKYBLUE : GRAY;
-                    
-                /*if (cell->clockwise)
-                {
-                    DrawText("C", x * cellSize, y * cellSize, 10, BLACK);
-                }
-                else
-                {
-                    DrawText("CC", x * cellSize, y * cellSize, 10, BLACK);
-                }*/
-
-                // Coord debug
-                //std::string strX = std::to_string(coordinate.x);
-                //std::string strY = std::to_string(coordinate.y);
-                //std::string coordinateText = strX + "," + strY;
-                //DrawText(coordinateText.c_str(), x * cellSize, y * cellSize, 10, BLACK);
-            }
-        }
     };
 
     Grid Init(i32 level, i32 width, i32 height, i32 cellSize);
     void AddToGrid(Grid& grid, Vector2Int topLeftCoordinate, i32 width, i32 height);
+    void Draw(Grid& grid, GameCamera::Camera& camera);
 
     inline Vector2 GetWorldPosition(Vector2Int coordinate)
     {

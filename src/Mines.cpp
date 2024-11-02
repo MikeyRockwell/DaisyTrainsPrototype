@@ -13,18 +13,28 @@ namespace Mines
         resources.mineTextures[PINK_CARGO] = texture;
         texture = Textures::Load("res/sprites/mine_orange.png");
         resources.mineTextures[ORANGE_CARGO] = texture;
+        texture = Textures::Load("res/sprites/mine_blue.png");
+        resources.mineTextures[BLUE_CARGO] = texture;
+        texture = Textures::Load("res/sprites/mine_green.png");
+        resources.mineTextures[GREEN_CARGO] = texture;
+        texture = Textures::Load("res/sprites/mine_white.png");
+        resources.mineTextures[WHITE_CARGO] = texture;
+        texture = Textures::Load("res/sprites/mine_black.png");
+        resources.mineTextures[BLACK_CARGO] = texture;
 
         // STATIONS
         texture = Textures::Load("res/sprites/station_pink.png");
         resources.stationTextures[PINK_CARGO] = texture;
         texture = Textures::Load("res/sprites/station_orange.png");
         resources.stationTextures[ORANGE_CARGO] = texture;
-
-        // CONVERTERS
-        texture = Textures::Load("res/sprites/converter_orange.png");
-        resources.converterTextures[ORANGE_CARGO] = texture;
-        texture = Textures::Load("res/sprites/converter_pink.png");
-        resources.converterTextures[PINK_CARGO] = texture;
+        texture = Textures::Load("res/sprites/station_blue.png");
+        resources.stationTextures[BLUE_CARGO] = texture;
+        texture = Textures::Load("res/sprites/station_green.png");
+        resources.stationTextures[GREEN_CARGO] = texture;
+        texture = Textures::Load("res/sprites/station_white.png"); 
+        resources.stationTextures[WHITE_CARGO] = texture;
+        texture = Textures::Load("res/sprites/station_black.png");
+        resources.stationTextures[BLACK_CARGO] = texture;
 
         resources.mineGhostTexture = Textures::Load("res/sprites/mine_ghost.png");
         resources.mineGhostSprite = Textures::CreateSprite
@@ -126,12 +136,11 @@ namespace Mines
             state.flipped = !state.flipped;
         }
 
-        if (UI::state.buildType == UI::BuildType::MINE)
+        if (UI::state.buildType == UI::BuildType::MINE && !UI::state.mouseOverUI)
         {
             if ( cell->initialized && 
                 !cell->hasMine && 
-                 cell->buildable &&
-                Mines::IsRailCompatible())
+                 cell->buildable)
             {
                 Stack* stack = nullptr;
                 for (int x = -1; x < 2; x++)
@@ -166,7 +175,7 @@ namespace Mines
             }
         }
 
-        if (UI::state.buildType == UI::BuildType::STATION)
+        if (UI::state.buildType == UI::BuildType::STATION && !UI::state.mouseOverUI)
         {
             if (cell->initialized && !cell->hasStation && cell->buildable)
             {
@@ -205,6 +214,10 @@ namespace Mines
 
     bool IsRailCompatible(Grid::Cell* cell)
     {
+        if (cell->hasObstacle)
+        {
+            return false;
+        }
         if (cell->initialized == false)
         {
             return false;

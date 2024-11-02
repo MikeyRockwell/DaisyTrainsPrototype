@@ -42,7 +42,7 @@ int main()
         BeginMode2D(Game::state.camera.rlCamera);
 		ClearBackground(PALETTE_DARK_GRAY);
 
-		Game::state.grid.Draw(Game::state.camera);
+		Grid::Draw(Game::state.grid, Game::state.camera);
 		Rail::Draw(0);
 		Trains::Draw(0);
 		Mines::Draw(0);

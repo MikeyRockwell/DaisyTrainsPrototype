@@ -21,6 +21,16 @@ namespace Grid
             1.0f,
             WHITE
         );
+        texture = Textures::Load("res/sprites/obstacle.png");
+        grid.obstacleSprite = Textures::CreateSprite
+        (
+            texture,
+            { 0,0,CELL_SIZE,CELL_SIZE },
+            { CELL_SIZE / 2, CELL_SIZE / 2 },
+            0.0f,
+            1.0f,
+            WHITE
+        );
 
         for (int y = 0; y < grid.height; y++)
         {
@@ -62,7 +72,46 @@ namespace Grid
             }
         }
 
-        grid.width = xMax;
+        grid.width  = xMax;
         grid.height = yMax;
+    }
+
+    void Draw(Grid& grid, GameCamera::Camera& camera)
+    {
+        for (auto& [coordinate, cell] : grid.cells)
+        {
+            Rectangle rectangle =
+            {
+                (float)cell.worldPosition.x,
+                (float)cell.worldPosition.y ,
+                (float)CELL_SIZE,
+                (float)CELL_SIZE
+            };
+
+            if (cell.hasObstacle)
+            {
+                DrawTexturePro
+                (
+                    *grid.obstacleSprite.texture,
+                    { 0, 0, CELL_SIZE, CELL_SIZE },
+                    rectangle,
+                    { 0,0 },
+                    0.0f,
+                    WHITE
+                );
+            }
+            else
+            {
+                DrawTexturePro
+                (
+                    *grid.groundSprite.texture,
+                    grid.groundSprite.source,
+                    rectangle,
+                    { 0,0 },
+                    0.0f,
+                    WHITE
+                );
+            }
+        }
     }
 }

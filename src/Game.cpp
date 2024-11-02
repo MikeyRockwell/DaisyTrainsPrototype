@@ -52,6 +52,31 @@ namespace Game
         {
             AddLevel(3);
         }
+        if (IsKeyPressed(KEY_FIVE))
+        {
+            AddLevel(4);
+        }
+        if (IsKeyPressed(KEY_SIX))
+        {
+            AddLevel(5);
+        }
+        if (IsKeyPressed(KEY_SEVEN))
+        {
+            AddLevel(6);
+        }
+        if (IsKeyPressed(KEY_EIGHT))
+        {
+            AddLevel(7);
+        }
+        if (IsKeyPressed(KEY_NINE))
+        {
+            AddLevel(8);
+        }
+        if (IsKeyPressed(KEY_ZERO))
+        {
+            AddLevel(9);
+        }
+        
 
         Vector2 moveDirection = { 0, 0 };
         if (IsKeyDown(KEY_W))
@@ -116,7 +141,10 @@ namespace Game
             if (stack->count == stack->capacity)
             {
                 unlockStack.unlocked = true;
-                AddLevel(unlockStack.levelToUnlock);
+                if (!state.levels[unlockStack.levelToUnlock].unlocked)
+                {
+                    AddLevel(unlockStack.levelToUnlock);
+                }
             }
         }
     }
@@ -128,6 +156,7 @@ namespace Game
             Level& level = state.levels[0];
             Mines::Stack* pinkStackFull  = Mines::CreateStack({ 1, -1 }, PINK_CARGO, 50, 50);
             Mines::Stack* pinkStackEmpty = Mines::CreateStack({ 1,  4 }, PINK_CARGO, 50, 0);
+            
             level.unlockStacks.push_back({ false, 1, { 1, 4 } });
             level.number = 0;
             level.unlocked = true;
@@ -153,6 +182,10 @@ namespace Game
             Rail::railState.railAvailable  += 220;
             Trains::state.trainsAvailable  += 100;
             
+            state.grid.cells[{ -1, 5 }].hasObstacle = true;
+            state.grid.cells[{ -1, 6 }].hasObstacle = true;
+            state.grid.cells[{ -1, 7 }].hasObstacle = true;
+
             Level& level = state.levels[1];
             level.unlocked = true;
             level.unlockStacks.push_back({ false, 2, { 0, 10 } });
@@ -165,24 +198,78 @@ namespace Game
             i32 pinkCargo = 100;
             Mines::Stack* pinkStackFull = Mines::CreateStack ({ 1, 13 }, PINK_CARGO, pinkCargo, pinkCargo);
             Mines::Stack* pinkStackEmpty = Mines::CreateStack({ 4, 12 }, PINK_CARGO, pinkCargo, 0);
+            Mines::Stack* orangeStackEmpty = Mines::CreateStack({ 0, 16 }, ORANGE_CARGO, 100, 0);
+
+            // Obstacles
+            state.grid.cells[{ 2, 14 }].hasObstacle = true;
+            state.grid.cells[{ 3, 14 }].hasObstacle = true;
+            state.grid.cells[{ 2, 15 }].hasObstacle = true;
+            state.grid.cells[{ 3, 15 }].hasObstacle = true;
 
             Level& level = state.levels[2];
             level.unlocked = true;
-            level.unlockStacks.push_back({ false, 4, { 4, 12 } });
+            level.unlockStacks.push_back({ false, 4, pinkStackEmpty->coordinate });
+            // TODO: Add unlock stack for orange stack empty
         }
 
         if (level == 3) // LEVEL 4 - 2 DOWN, 1 RIGHT
         {
             Grid::AddToGrid(state.grid, { 5, 5 }, 6, 5);
             i32 blueCargo = 200;
-            Mines::Stack* blueStackFull  = Mines::CreateStack({ 7, 7 }, BLUE_CARGO, blueCargo, blueCargo);
-            Mines::Stack* blueStackEmpty = Mines::CreateStack({ 7, 4 }, BLUE_CARGO, blueCargo, 0);
+            Mines::Stack* blueStackFull  = Mines::CreateStack({ 7, 7 },  BLUE_CARGO, blueCargo, blueCargo);
+            Mines::Stack* blueStackEmpty = Mines::CreateStack({ 7, 4 },  BLUE_CARGO, blueCargo, 0);
+            Mines::Stack* pinkStackEmpty = Mines::CreateStack({ 11, 6 }, PINK_CARGO, 250, 0);
+
+            // Obstacles
+            state.grid.cells[{ 8, 7 }].hasObstacle = true;
 
             Level& level = state.levels[3];
             level.unlocked = true;
             // TODO: Add unlock stack
         }
 
+        if (level == 4) // 2 DOWN, 2 RIGHT
+        {
+            Grid::AddToGrid(state.grid, { 5, 11 }, 6, 5);
+            i32 pinkCargo = 100;
+            Mines::Stack* pinkStackFull  = Mines::CreateStack({ 9, 16 }, PINK_CARGO, pinkCargo, pinkCargo);
+            Mines::Stack* pinkStackEmpty = Mines::CreateStack({ 9, 10 }, PINK_CARGO, pinkCargo, 0);
 
+            // Obstacles
+            state.grid.cells[{ 9, 12 }].hasObstacle = true;
+            state.grid.cells[{ 9, 13 }].hasObstacle = true;
+            state.grid.cells[{ 9, 14 }].hasObstacle = true;
+            state.grid.cells[{ 6, 13 }].hasObstacle = true;
+            state.grid.cells[{ 6, 14 }].hasObstacle = true;
+            state.grid.cells[{ 7, 14 }].hasObstacle = true;
+
+            Level& level = state.levels[4];
+            level.unlocked = true;
+            // TODO: Add unlock stack
+        }
+
+        if (level == 5)
+        {
+            Grid::AddToGrid(state.grid, { -1, 17 }, 13, 7);
+            i32 greenCargo = 200;
+            i32 blueCargo  = 200;
+            Mines::Stack* greenStackFull   = Mines::CreateStack({ 4, 20 }, GREEN_CARGO, greenCargo, greenCargo);
+            Mines::Stack* greenStackEmpty  = Mines::CreateStack({ 6, 16 }, GREEN_CARGO, greenCargo, 0);
+            Mines::Stack* blueStackFull    = Mines::CreateStack({ 8, 20 }, BLUE_CARGO, blueCargo, blueCargo);
+            Mines::Stack* blueStackEmpty   = Mines::CreateStack({ 12, 18 }, BLUE_CARGO, blueCargo, 0);
+            Mines::Stack* orangeStackEmpty = Mines::CreateStack({ 12, 21 }, ORANGE_CARGO, 100, 0);
+
+            Mines::Stack* greenStackEmptyLevel4 = Mines::CreateStack({ 6,10 }, GREEN_CARGO, 100, 0);
+
+            // Obstacles
+            state.grid.cells[{ 1, 19 }].hasObstacle = true;
+            state.grid.cells[{ 2, 19 }].hasObstacle = true;
+            state.grid.cells[{ 1, 20 }].hasObstacle = true;
+            state.grid.cells[{ 2, 20 }].hasObstacle = true;
+            state.grid.cells[{ 1, 21 }].hasObstacle = true;
+            state.grid.cells[{ 2, 21 }].hasObstacle = true;
+            state.grid.cells[{ 8, 21 }].hasObstacle = true;
+            state.grid.cells[{ 9, 18 }].hasObstacle = true;
+        }
     }
 }

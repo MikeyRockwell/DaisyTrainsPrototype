@@ -68,9 +68,11 @@ namespace UI
     {
         Vector2 mouseScreenSpace = GetMousePosition();
 
+        bool mouseOver = false;
         for (int i = 0; i < COUNT; i++)
         {
             state.buttons[i].hovered = CheckCollisionPointRec(mouseScreenSpace, state.buttons[i].rectangle);
+            mouseOver = mouseOver || state.buttons[i].hovered;
             if (state.buttons[i].hovered && IsMouseButtonPressed(0))
             {
                 state.buttons[i].selected = !state.buttons[i].selected;
@@ -85,7 +87,7 @@ namespace UI
                 }
             }
         }
-
+        state.mouseOverUI = mouseOver;
     }
 
     void DrawWorldSpace()
@@ -164,5 +166,7 @@ namespace UI
         case Rail::RailType::BOTTOM_TO_LEFT: railTypeText = "BOTTOM_TO_LEFT"; break;
         }
         DrawText(railTypeText, 10, 120, 20, WHITE);
+        const char* mouseOverUI = state.mouseOverUI ? "TRUE" : "FALSE";
+        DrawText(mouseOverUI, 10, 140, 20, WHITE);
     }
 }
