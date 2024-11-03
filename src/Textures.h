@@ -4,7 +4,7 @@
 
 namespace Textures
 {
-    const int MAX_TEXTURES = 32;
+    const int MAX_TEXTURES = 64;
 
     struct Sprite
     {

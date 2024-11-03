@@ -8,6 +8,7 @@
 namespace Grid
 {
     const i32 GROUND_SPRITES = 5;
+    const i32 OBSTACLE_SPRITES = 4;
 
     struct Cell
     {
@@ -32,6 +33,7 @@ namespace Grid
         bool buildable   = true;
         
         i32 groundSpriteIndex = 0;
+        i32 obstacleSpriteIndex = 0;
     };
 
     struct Grid
@@ -44,7 +46,7 @@ namespace Grid
         i32 cellSize = 32;
         std::unordered_map<Vector2Int, Cell, Vector2IntHash, Vector2IntEqual> cells;
         Textures::Sprite groundSprite[GROUND_SPRITES];
-        Textures::Sprite obstacleSprite;
+        Textures::Sprite obstacleSprites[OBSTACLE_SPRITES];
 
         inline Cell* GetCellAtWorldPosition(Vector2 worldPosition)
         {

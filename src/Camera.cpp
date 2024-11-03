@@ -24,6 +24,6 @@ void GameCamera::Update(Camera& camera)
         camera.zoomTarget = MAX_ZOOM;
     }
 
-    camera.rlCamera.zoom = Lerp(camera.rlCamera.zoom, camera.zoomTarget, deltaTime * 1000.0f);
-    camera.rlCamera.target = Vector2Lerp(camera.rlCamera.target, camera.target, deltaTime * 1000.0f);
+    camera.rlCamera.zoom = Lerp(camera.rlCamera.zoom, camera.zoomTarget, deltaTime * 5.0f);
+    camera.rlCamera.target = Vector2Lerp(camera.rlCamera.target, camera.target, deltaTime * 5.0f);
 }

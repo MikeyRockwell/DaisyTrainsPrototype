@@ -11,6 +11,7 @@ namespace Game
 {
     const i32 LEVEL_COUNT = 11;
     const i32 MAX_STACKS = 8;
+    const i32 MAX_TRAINS = 8;
 
     struct Clock
     {
@@ -30,16 +31,19 @@ namespace Game
     {
         i32 number;
         bool unlocked;
-        //bool complete;
         
         Color helpTextColor = PALETTE[BLACK_CARGO];
         std::string helpText;
 
+        i32 trainsAvailable = 1;
         i32 mineCount    = 1;
         i32 stationCount = 1;
-        i32 trainCount   = 1;
         i32 carCount     = 8;
-        i32 railCount   = 8;
+        i32 railCount    = 8;
+        
+        bool trainDeployed = false;
+        i32 trainCount   = 0;
+        Trains::TrainEngine trains[MAX_TRAINS];
 
         std::vector<UnlockStack> unlockStacks;
 
@@ -60,6 +64,8 @@ namespace Game
         i32 currency = 0;
         Level levels[LEVEL_COUNT];
 
+        bool level10StacksCreated = false;
+        std::vector<Mines::Stack*> stacksToUnlockLevel10;
     };
     extern GameState state;
 
@@ -76,5 +82,5 @@ namespace Game
     void CheckLevelStates();
     void CheckLevel(i32 level);
     void AddLevel(i32 level);
-    
+    void CreateLevel10Stacks();
 }

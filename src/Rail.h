@@ -69,12 +69,58 @@ namespace Rail
         Textures::Sprite railSpritesClockwise[RAIL_TYPES];
         Textures::Sprite railSpritesCounterClockwise[RAIL_TYPES];
         Textures::Sprite crossingSprite;
+
+        bool mouseDown = false;
+        bool buildRail = false;
+        Vector2 mouseDownWorldPosition;
+        Vector2 mouseUpWorldPosition;
+
+        float straightThreshold = 32.0f;
+        float cornerThreshold = 12.0f;
+
+        float xDelta = 0.0f;
+        float yDelta = 0.0f;
+
+        Grid::Cell* mouseDownCell;
+
     };
     extern UIState uiState;
 
     void Init  ();
     void Update(i32 level);
     void Draw  (i32 level);
+
+    inline bool IsInTopLeft(Vector2 pos, Vector2 cellCenter) {
+        return pos.x < cellCenter.x && pos.y < cellCenter.y;
+    }
+
+    inline bool IsInTopRight(Vector2 pos, Vector2 cellCenter) {
+        return pos.x >= cellCenter.x && pos.y < cellCenter.y;
+    }
+
+    inline bool IsInBottomLeft(Vector2 pos, Vector2 cellCenter) {
+        return pos.x < cellCenter.x && pos.y >= cellCenter.y;
+    }
+
+    inline bool IsInBottomRight(Vector2 pos, Vector2 cellCenter) {
+        return pos.x >= cellCenter.x && pos.y >= cellCenter.y;
+    }
+
+    inline bool IsInTop(Vector2 pos, Grid::Cell* cell) {
+        return pos.y < (cell->worldPosition.y + CELL_SIZE / 2) - 12;
+    }
+
+    inline bool IsInBottom(Vector2 pos, Grid::Cell* cell) {
+        return pos.y >= (cell->worldPosition.y + CELL_SIZE / 2) + 12;
+    }
+
+    inline bool IsInLeft(Vector2 pos, Grid::Cell* cell) {
+        return pos.x < (cell->worldPosition.x + CELL_SIZE / 2) - 12;
+    }
+
+    inline bool IsInRight(Vector2 pos, Grid::Cell* cell) {
+        return pos.x >= (cell->worldPosition.x + CELL_SIZE / 2) + 12;
+    }
 
     inline Vector2 GetCellConnectionPoint(Grid::Cell* cell, ConnectionPoint point)
     {
@@ -235,5 +281,7 @@ namespace Rail
     }
 
     void CreateRailSegment(Grid::Cell* cell, RailType type);
+    void CreatePermanentRail(Grid::Cell* cell, RailType type, bool clockwise);
+
     
 }

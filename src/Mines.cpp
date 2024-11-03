@@ -1,5 +1,6 @@
 #include "Mines.h"
 #include "Game.h"
+#include "Audio.h"
 
 namespace Mines
 {
@@ -98,6 +99,9 @@ namespace Mines
             PALETTE[mine.cargoType]
         );
 
+        // SFX
+        Audio::PlaySFXRandom(Audio::resources.place_mine.sound);
+
         return &mine;
     }
 
@@ -123,6 +127,7 @@ namespace Mines
             1.0f,
             PALETTE[station.cargoType]
         );
+        Audio::PlaySFXRandom(Audio::resources.place_station.sound);
 
         return &station;
     }
@@ -148,10 +153,10 @@ namespace Mines
         state.buildableCell = false;
         state.adjacentStack = nullptr;
 
-        if (IsKeyPressed(KEY_R) && (UI::state.buildType == UI::MINE || UI::state.buildType == UI::STATION))
+        /*if (IsKeyPressed(KEY_R) && (UI::state.buildType == UI::MINE || UI::state.buildType == UI::STATION))
         {
             state.flipped = !state.flipped;
-        }
+        }*/
 
         if (UI::state.buildType == UI::BuildType::MINE && !UI::state.mouseOverUI)
         {
@@ -170,6 +175,7 @@ namespace Mines
                         Vector2Int coordinate = { cell->coordinate.x + x, cell->coordinate.y + y };
                         if (state.stacks.find(coordinate) != state.stacks.end())
                         {
+                            state.flipped = x == 0 ? false : true;
                             stack = &state.stacks[coordinate];
                             state.buildableCell = true;
                             state.adjacentStack = stack;
@@ -191,6 +197,7 @@ namespace Mines
             {
                 state.mines.erase(cell->coordinate);
                 cell->hasMine = false;
+                cell->buildable = true;
                 if (cell->railType == -1) cell->buildable = true;
                 focusedLevel.mineCount++;
             }
@@ -213,6 +220,7 @@ namespace Mines
                         Vector2Int coordinate = { cell->coordinate.x + x, cell->coordinate.y + y };
                         if (state.stacks.find(coordinate) != state.stacks.end())
                         {
+                            state.flipped = x == 0 ? false : true;
                             stack = &state.stacks[coordinate];
                             state.buildableCell = true;
                             state.adjacentStack = stack;
@@ -286,7 +294,7 @@ namespace Mines
         {
             return false;
         }
-        if (cell->railType != -1)
+        if (cell->railType != -1) // if it has rail
         {
             if (flipped)
             {
@@ -302,6 +310,19 @@ namespace Mines
                     return false;
                 }
             }
+            if (cell->hasCrossing)
+            {
+                return false;
+            }
+            if (cell->railType == Rail::BOTTOM_TO_LEFT || cell->railType == Rail::TOP_TO_RIGHT)
+            {
+                return false;
+            }
+            if (cell->railType == Rail::TOP_TO_LEFT || cell->railType == Rail::BOTTOM_TO_RIGHT)
+            {
+                return false;
+            }
+
         }
         return true;
     }

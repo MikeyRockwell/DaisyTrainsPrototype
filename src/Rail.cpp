@@ -4,6 +4,7 @@
 #include <iostream>
 #include "Mines.h"
 #include "Game.h"
+#include "Audio.h"
 
 namespace Rail
 {
@@ -87,6 +88,138 @@ namespace Rail
         RailType type = RailType::NONE;
 
         /*=========================================================
+            MOUSE RAIL DRAG
+        =========================================================*/
+        
+        uiState.buildRail = false;
+
+        // Store the mouse down position if it's not already down
+        if (IsMouseButtonDown(0) && !uiState.mouseDown && cell->initialized)
+        {
+            uiState.mouseDown = true;
+            uiState.mouseDownWorldPosition = mousePosition;
+            uiState.mouseDownCell = cell;
+        }
+
+        // Calculate the x delta
+        if (uiState.mouseDown)
+        {
+            if (cell != uiState.mouseDownCell)
+            {
+                uiState.mouseDownCell = cell;
+                uiState.mouseDownWorldPosition = mousePosition;
+            }
+            Vector2 cellCenter = { cell->worldPosition.x + grid.cellSize / 2, cell->worldPosition.y + grid.cellSize / 2 };
+            Vector2 delta = Vector2Subtract(mousePosition, uiState.mouseDownWorldPosition);
+            uiState.xDelta = delta.x;
+            uiState.yDelta = delta.y;
+            
+            // CORNER CHECK
+            if (abs(delta.x) > uiState.cornerThreshold && abs(delta.y) > uiState.cornerThreshold)
+            {
+                if (delta.x > 0 && delta.y > 0) // mouse moved to the right and down
+                {
+                    if (IsInRight(mousePosition, cell))
+                    {
+                        uiState.clockwise = false;
+                        uiState.selectedType = RailType::TOP_TO_RIGHT;
+                        uiState.buildRail = true;
+                    }
+                    else if (IsInBottom(mousePosition, cell))
+                    {
+                        uiState.clockwise = true;
+                        uiState.selectedType = RailType::BOTTOM_TO_LEFT;
+                        uiState.buildRail = true;
+                    }
+                }
+                else if (delta.x > 0 && delta.y < 0) // mouse moved to the right and up
+                {
+                    if (IsInTop(mousePosition, cell))
+                    {
+                        uiState.clockwise = false;
+                        uiState.selectedType = RailType::TOP_TO_LEFT;
+                        uiState.buildRail = true;
+                    }
+                    else if (IsInRight(mousePosition, cell))
+                    {
+                        uiState.clockwise = true;
+                        uiState.selectedType = RailType::BOTTOM_TO_RIGHT;
+                        uiState.buildRail = true;
+                    }
+                }
+                else if (delta.x < 0 && delta.y > 0) // mouse moved to the left and down
+                {
+                    if (IsInLeft(mousePosition, cell))
+                    {
+                        uiState.clockwise = true;
+                        uiState.selectedType = RailType::TOP_TO_LEFT;
+                        uiState.buildRail = true;
+                    }
+                    else if (IsInBottom(mousePosition, cell))
+                    {
+                        uiState.clockwise = false;
+                        uiState.selectedType = RailType::BOTTOM_TO_RIGHT;
+                        uiState.buildRail = true;
+                    }
+                }
+                else if (delta.x < 0 && delta.y < 0) // mouse moved to the left and up
+                {
+                    if (IsInTop(mousePosition, cell))
+                    {
+                        uiState.clockwise = true;
+                        uiState.selectedType = RailType::TOP_TO_RIGHT;
+                        uiState.buildRail = true;
+                    }
+                    else if (IsInLeft(mousePosition, cell))
+                    {
+                        uiState.clockwise = false;
+                        uiState.selectedType = RailType::BOTTOM_TO_LEFT;
+                        uiState.buildRail = true;
+                    }
+                }
+            }
+            // HORIZONTAL CHECK
+            else if (abs(delta.x) > uiState.straightThreshold)
+            {
+                if (delta.x > 0)
+                {
+                    uiState.clockwise = false;
+                    uiState.selectedType = RailType::HORIZONTAL;
+                    uiState.buildRail = true;
+                }
+                else
+                {
+                    uiState.clockwise = true;
+                    uiState.selectedType = RailType::HORIZONTAL;
+                    uiState.buildRail = true;
+                }
+            }
+            // VERTICAL CHECK
+            else if (abs(delta.y) > uiState.straightThreshold)
+            {
+                if (delta.y > 0)
+                {
+                    uiState.clockwise = false;
+                    uiState.selectedType = RailType::VERTICAL;
+                    uiState.buildRail = true;
+                }
+                else
+                {
+                    uiState.clockwise = true;
+                    uiState.selectedType = RailType::VERTICAL;
+                    uiState.buildRail = true;
+                }
+            }
+        }
+
+        if (IsMouseButtonReleased(0))
+        {
+            uiState.mouseDown = false;
+        }
+
+
+
+        /*=========================================================
             RAIL MOUSE OVER GRID
         =========================================================*/
 
@@ -131,7 +264,7 @@ namespace Rail
         /*=========================================================
             CREATE RAIL SEGMENT
         =========================================================*/
-        if (Game::GetLevel().railCount == 0 || Game::GetLevel().trainCount == 0)
+        if (Game::GetLevel().railCount == 0 || Game::GetLevel().trainDeployed == true)
         {
             uiState.canBuild = false;
         }
@@ -143,11 +276,15 @@ namespace Rail
         {
             uiState.canBuild = false;
         }
-
-        if (IsMouseButtonPressed(0) && uiState.canBuild)
+        if (uiState.buildRail && uiState.canBuild)
         {
             CreateRailSegment(cell, type);
         }
+
+        /*if (IsMouseButtonPressed(0) && uiState.canBuild)
+        {
+            CreateRailSegment(cell, type);
+        }*/
 
         /*=========================================================
             SCROLL TO CHANGE RAIL SEGMENT
@@ -166,24 +303,28 @@ namespace Rail
         /*=========================================================
             DELETE RAIL SEGMENT
         =========================================================*/
-        if (IsMouseButtonDown(1) && Game::GetLevel().trainCount > 0)
+        if (IsMouseButtonDown(1) && !Game::GetLevel().trainDeployed)
         {
             if (cell->railType != -1 && cell->railType != CROSSING)
             {
-                cell->railType = -1;
-                cell->connectionPoints.reset();
-                cell->connectionPositions[0] = { -1,-1 };
-                cell->connectionPositions[1] = { -1,-1 };
-                // Remove the rail from the rail state
-                railState.coordinateToRailMap.erase(cell->coordinate);
-                Game::GetLevel().railCount++;
+                Rail* rail = &railState.coordinateToRailMap[cell->coordinate];
+                if (rail->removable)
+                {
+                    cell->railType = -1;
+                    cell->connectionPoints.reset();
+                    cell->connectionPositions[0] = { -1,-1 };
+                    cell->connectionPositions[1] = { -1,-1 };
+                    // Remove the rail from the rail state
+                    railState.coordinateToRailMap.erase(cell->coordinate);
+                    Game::GetLevel().railCount++;
+                }
             }
         }
 
         /*========================================================
             FLIP RAIL SEGMENT DIRECTION
         =========================================================*/
-        if (IsKeyPressed(KEY_F) && Game::Level().trainCount > 0)
+        if (IsKeyPressed(KEY_F) && Game::Level().trainsAvailable > 0)
         {
             if (cell->railType != -1)
             {
@@ -201,7 +342,7 @@ namespace Rail
         Grid::Cell* cell = grid.GetCellAtWorldPosition(mouseWorldPosition);
 
         // DRAW THE RAIL GHOST
-        if (UI::state.buildType == UI::RAIL && cell->initialized && uiState.selectedType != NONE)
+        /*if (UI::state.buildType == UI::RAIL && cell->initialized && uiState.selectedType != NONE)
         {
             Color ghostColor = uiState.canBuild ? PALETTE_GREEN : PALETTE_BLACK;
 
@@ -249,7 +390,7 @@ namespace Rail
                     WHITE
                 );
             }
-        }
+        }*/
 
         // DRAW THE RAILS
         for (auto& [coordinate, rail] : railState.coordinateToRailMap)
@@ -307,17 +448,35 @@ namespace Rail
 
         // DEBUG
 
-        std::string mouseCoordinate = std::to_string(cell->coordinate.x) + "," + std::to_string(cell->coordinate.y);
-        DrawTextEx(GetFontDefault(), mouseCoordinate.c_str(), { mouseWorldPosition.x - 20, mouseWorldPosition.y - 20 }, 20, 0, ORANGE);
+        //std::string mouseCoordinate = std::to_string(cell->coordinate.x) + "," + std::to_string(cell->coordinate.y);
+        //DrawTextEx(GetFontDefault(), mouseCoordinate.c_str(), { mouseWorldPosition.x - 20, mouseWorldPosition.y - 20 }, 20, 0, ORANGE);
 
-        if (cell->connectionPositions[0].x != -1)
+        if (uiState.mouseDown)
         {
-            DrawCircleV(cell->connectionPositions[0], 5, RED);
+            //std::string mouseDelta = std::to_string(uiState.xDelta) + "," + std::to_string(uiState.yDelta);
+            //DrawText(mouseDelta.c_str(), mouseWorldPosition.x, mouseWorldPosition.y, 20, WHITE);
+            DrawLineEx(uiState.mouseDownWorldPosition, mouseWorldPosition, 2, PALETTE_ORANGE);
         }
-        if (cell->connectionPositions[1].x != -1)
+        /*Vector2 drawPosition = { 0,0 };
+        Vector2 cellCenter = { cell->worldPosition.x + CELL_SIZE / 2, cell->worldPosition.y + CELL_SIZE / 2 };  
+        if (IsInTopLeft(mouseWorldPosition, cellCenter))
         {
-            DrawCircleV(cell->connectionPositions[1], 5, RED);
+            drawPosition = { cell->worldPosition.x + CELL_SIZE / 4, cell->worldPosition.y + CELL_SIZE / 4 };
         }
+        if (IsInTopRight(mouseWorldPosition, cellCenter))
+        {
+            drawPosition = { cell->worldPosition.x + 3 * CELL_SIZE / 4, cell->worldPosition.y + CELL_SIZE / 4 };
+        }
+        if (IsInBottomLeft(mouseWorldPosition, cellCenter))
+        {
+            drawPosition = { cell->worldPosition.x + CELL_SIZE / 4, cell->worldPosition.y + 3 * CELL_SIZE / 4 };
+        }
+        if (IsInBottomRight(mouseWorldPosition, cellCenter))
+        {
+            drawPosition = { cell->worldPosition.x + 3 * CELL_SIZE / 4, cell->worldPosition.y + 3 * CELL_SIZE / 4 };
+        }
+        
+        DrawCircle(drawPosition.x, drawPosition.y, 5, PALETTE_ORANGE);*/
     }
 
     Vector2 GetNextDestinationPoint(Grid::Cell* cell, Vector2 worldEntryPoint)
@@ -405,6 +564,7 @@ namespace Rail
     void CreateRailSegment(Grid::Cell* cell, RailType type)
     {
         Rail rail{};
+        rail.removable = true;
         rail.type = uiState.selectedType;
         rail.start = uiState.selectedRail.start;
         rail.end = uiState.selectedRail.end;
@@ -413,5 +573,21 @@ namespace Rail
         railState.coordinateToRailMap[cell->coordinate] = rail;
         SetConnectionPoints(cell, type);
         Game::GetLevel().railCount--;
+
+        i32 random = GetRandomValue(0, Audio::PLACE_RAIL_SFX - 1);
+        Audio::PlaySFXRandom(Audio::resources.place_rail[random].sound);
+    }
+
+    void CreatePermanentRail(Grid::Cell* cell, RailType type, bool clockwise)
+    {
+        Rail rail{};
+        rail.removable = false;
+        rail.type = type;
+        rail.start = uiState.selectedRail.start;
+        rail.end = uiState.selectedRail.end;
+        rail.coordinate = cell->coordinate;
+        cell->clockwise = clockwise;
+        railState.coordinateToRailMap[cell->coordinate] = rail;
+        SetConnectionPoints(cell, type);
     }
 }

@@ -7,6 +7,7 @@
 #include <string>
 #include <iostream>
 #include <cassert>
+#include "Audio.h"
 
 namespace Trains
 {
@@ -28,10 +29,10 @@ namespace Trains
             WHITE
         );
 
-        texture = Textures::Load("res/sprites/train_car_green.png");
+        texture = Textures::Load("res/sprites/train_car_orange.png");
         width = texture->width;
         height = texture->height;
-        resources.carSprites[GREEN_CARGO] = Textures::CreateSprite
+        resources.carSprites[ORANGE_CARGO] = Textures::CreateSprite
         (
             texture,
             { 0,0, (float)width, (float)height },
@@ -93,13 +94,35 @@ namespace Trains
         );
 	}
 
-	void Update(i32 level)
+	void Update()
 	{
         Grid::Grid& grid = Game::state.grid;
+        /*===============================================
+            TRAIN AUDIO
+        ===============================================*/
+        for (int i = 0; i < Game::GetLevel().trainCount; i++)
+        {
+            TrainEngine& train = Game::GetLevel().trains[i];
+            float distance = Vector2Distance(train.transform.worldPosition, Game::state.camera.target);
+            distance *= 2.5;
+            distance /= (Game::state.camera.rlCamera.zoom * 0.5);
+            float volume = 1.0f - distance / 1000.0f;
+            if (volume < 0.0f)
+            {
+                volume = 0.0f;
+            }
+            SetSoundVolume(Audio::resources.train_running.sound, volume);
+            if (!IsSoundPlaying(Audio::resources.train_running.sound))
+            {
+                PlaySound(Audio::resources.train_running.sound);
+            }
+        }
 
         /*===============================================
             CREATE TRAIN
         ===============================================*/
+        state.trainPlacementValid = false;
+
 		if (UI::state.buildType == UI::BuildType::TRAIN && !UI::state.mouseOverUI)
 		{
 			Rail::uiState.selectedType = Rail::RailType::NONE;
@@ -111,9 +134,25 @@ namespace Trains
             {
                 state.trainPlacementPosition = Vector2Add(cell->worldPosition, { CELL_SIZE / 2.0f, CELL_SIZE / 2.0f });
 
-                if (IsMouseButtonPressed(0) && Game::GetLevel().trainCount > 0)
+                bool tooClose = false;
+                for (int i = 0; i < Game::GetLevel().trainCount; i++)
                 {
-                    TrainEngine& train = state.trains[state.trainCount++];
+                    if (Vector2Distance(state.trainPlacementPosition, Game::GetLevel().trains[i].transform.worldPosition) < MIN_TRAIN_SPAWN_DISTANCE)
+                    {
+                        tooClose = true;
+                    }
+                    else
+                    {
+                        state.trainPlacementValid = true;
+                    }
+                }
+
+                if (IsMouseButtonPressed(0) && Game::GetLevel().trainsAvailable > 0 && !tooClose)
+                {
+                    Game::Level& level = Game::GetLevel();
+                    level.trainDeployed = true;
+                    TrainEngine& train = level.trains[level.trainCount++];
+                    train.index = level.trainCount - 1;
 
                     train.transform.worldPosition = state.trainPlacementPosition;
                     train.transform.currentCell = cell;
@@ -143,52 +182,83 @@ namespace Trains
                         car.transform.nextCell = train.transform.nextCell;
                     }
 
-                    Game::GetLevel().trainCount--;
+                    Game::GetLevel().trainsAvailable--;
+
+                    PlaySound(Audio::resources.place_train.sound);
                 }
             }
 		}
 
-        for (int i = 0; i < state.trainCount; i++)
+        /*==============================================
+            REMOVE TRAIN
+        ==============================================*/
+
+        if (UI::state.buildType == UI::BuildType::REMOVE_TRAIN && !UI::state.mouseOverUI)
         {
-            TrainEngine& train = state.trains[i];
-            UpdateTransform(level, train, train.transform);
-
-            for (int j = 0; j < train.carCount; j++)
+            Vector2 mousePosition = Game::state.mouseWorldPosition;
+            
+            Game::Level& level = Game::GetLevel();
+            for (int i = 0; i < level.trainCount; i++)
             {
-                Car& car = train.cars[j];
-
-                TrainTransform& parentTransform = j == 0 ? train.transform : train.cars[j - 1].transform;
-                UpdateCarTransform(level, car, parentTransform, train.transform.speed);
-
-                // LOADING AND UNLOADING
-                Grid::Cell* cell = grid.GetCellAtWorldPosition(car.transform.worldPosition);
-                if (cell->hasMine && !car.loaded)
+                TrainEngine& train = level.trains[i];
+                if (CheckCollisionPointCircle(mousePosition, train.transform.worldPosition, 50.0f))
                 {
-                    Mines::Mine* mine = &Mines::state.mines[cell->coordinate];
-                    if (mine->stack->count > 0)
+                    if (IsMouseButtonDown(0))
                     {
-                        i32 amount = 1;
-                        mine->stack->count -= amount;
-                        car.loaded = true;
-                        car.cargoType = mine->cargoType;
+                        // Remove the train
+                        RemoveTrain(train.index);
+                        break;
                     }
                 }
+            }
+        }
 
-                // Unloading at STATION
-                if (cell->hasStation && car.loaded)
+
+        for (int x = 0; x < Game::LEVEL_COUNT; x++)
+        {
+            Game::Level& level = Game::state.levels[x];
+            for (int i = 0; i < level.trainCount; i++)
+            {
+                TrainEngine& train = level.trains[i];
+                UpdateTransform(train, train.transform);
+
+                for (int j = 0; j < train.carCount; j++)
                 {
-                    Mines::Station* station = &Mines::state.stations[cell->coordinate];
-                    if (station->cargoType == car.cargoType && station->stack->count != station->stack->capacity)
+                    Car& car = train.cars[j];
+
+                    TrainTransform& parentTransform = j == 0 ? train.transform : train.cars[j - 1].transform;
+                    UpdateCarTransform(car, parentTransform, train.transform.speed);
+
+                    // LOADING AND UNLOADING
+                    Grid::Cell* cell = grid.GetCellAtWorldPosition(car.transform.worldPosition);
+                    if (cell->hasMine && !car.loaded)
                     {
-                        station->stack->count++;
-                        car.loaded = false;
+                        Mines::Mine* mine = &Mines::state.mines[cell->coordinate];
+                        if (mine->stack->count > 0)
+                        {
+                            i32 amount = 1;
+                            mine->stack->count -= amount;
+                            car.loaded = true;
+                            car.cargoType = mine->cargoType;
+                        }
+                    }
+
+                    // Unloading at STATION
+                    if (cell->hasStation && car.loaded)
+                    {
+                        Mines::Station* station = &Mines::state.stations[cell->coordinate];
+                        if (station->cargoType == car.cargoType && station->stack->count != station->stack->capacity)
+                        {
+                            station->stack->count++;
+                            car.loaded = false;
+                        }
                     }
                 }
             }
         }
 	}
 
-    void UpdateTransform(i32 level, TrainEngine& engine, TrainTransform& transform)
+    void UpdateTransform(TrainEngine& engine, TrainTransform& transform)
     {
         Grid::Grid& grid = Game::state.grid;
 
@@ -246,7 +316,7 @@ namespace Trains
         }
     }
 
-    void UpdateCarTransform(i32 level, Car& car, TrainTransform& parentTransform, float speed)
+    void UpdateCarTransform(Car& car, TrainTransform& parentTransform, float speed)
     {
         Grid::Grid& grid = Game::state.grid;
         TrainTransform& transform = car.transform;
@@ -320,83 +390,107 @@ namespace Trains
         transform.nextCell = Rail::GetNextCell(transform.nextCell, transform.worldPosition);
     }
 
-	void Draw(i32 level)
+    void RemoveTrain(i32 index)
+    {
+        Game::Level& level = Game::GetLevel();
+        level.trains[index] = level.trains[level.trainCount - 1];
+        level.trainCount--;
+        level.trains[index].index = index;
+        if (level.trainCount == 0)
+        {
+            level.trainDeployed = false;
+        }
+        level.trainsAvailable++;
+
+        PlaySound(Audio::resources.remove_train.sound);
+    }
+
+	void Draw()
     {
         Grid::Grid& grid  = Game::state.grid;
 
-		if (UI::state.buildType == UI::BuildType::RAIL)
+		if (UI::state.buildType == UI::BuildType::TRAIN && Game::GetLevel().trainCount >= 1 && Game::GetLevel().trainsAvailable > 0)
 		{
-			Vector2 mousePosition = GetMousePosition();
-			Grid::Cell* cell = grid.GetCellAtWorldPosition(mousePosition);
-
-			if (cell->railType != -1)
-			{
-                DrawCircleV(state.trainPlacementPosition, 8, YELLOW);
-			}
-		}
-        for (int i = 0; i < state.trainCount; i++)
-        {
-            TrainEngine& train = state.trains[i];
-            
-            Color color = WHITE;
-            Rectangle destination =
+			Vector2 mousePosition = Game::state.mouseWorldPosition;
+            float size = MIN_TRAIN_SPAWN_DISTANCE;
+            Rectangle destination = { mousePosition.x - size / 2, mousePosition.y - size / 2, size , size };
+            if (state.trainPlacementValid)
             {
-                train.transform.worldPosition.x,
-                train.transform.worldPosition.y,
-                (float)resources.trainSprite.texture->width,
-                (float)resources.trainSprite.texture->height
-            };
-            if (train.transform.currentCell->hasCrossing &&
-                abs(train.transform.entryPosition.x - train.transform.targetPosition.x) > 0)
-            {
-                // THE TRAIN IS MOVING HORIZONTALLY THROUGH A TUNNEL
-                // dont draw the train
+                DrawRectangleRoundedLines(destination, 1.0f, 4, 4.0f / Game::state.camera.rlCamera.zoom, PALETTE_YELLOW);
             }
             else
             {
-                DrawTexturePro
-                (
-                    *resources.trainSprite.texture,
-                    resources.trainSprite.source,
-                    destination,
-                    { resources.trainSprite.origin.x, resources.trainSprite.origin.y },
-                    train.transform.rotation,
-                    color
-                );
+                DrawRectangleRoundedLines(destination, 1.0f, 4, 4.0f / Game::state.camera.rlCamera.zoom, PALETTE_ORANGE);
             }
 
-            for (int j = 0; j < train.carCount; j++)
+		}
+        for (int x = 0; x < Game::LEVEL_COUNT; x++)
+        {
+            Game::Level& level = Game::state.levels[x];
+            for (int i = 0; i < level.trainCount; i++)
             {
-                Car& car = train.cars[j];
-                if (car.transform.currentCell->hasCrossing &&
-                    abs(car.transform.entryPosition.x - car.transform.targetPosition.x) > 0)
+                TrainEngine& train = level.trains[i];
+            
+                Color color = WHITE;
+                Rectangle destination =
                 {
-                    // THE CAR IS MOVING HORIZONTALLY THROUGH A TUNNEL
-                    // dont draw the CAR
+                    train.transform.worldPosition.x,
+                    train.transform.worldPosition.y,
+                    (float)resources.trainSprite.texture->width,
+                    (float)resources.trainSprite.texture->height
+                };
+                if (train.transform.currentCell->hasCrossing &&
+                    abs(train.transform.entryPosition.x - train.transform.targetPosition.x) > 0)
+                {
+                    // THE TRAIN IS MOVING HORIZONTALLY THROUGH A TUNNEL
+                    // dont draw the train
                 }
                 else
                 {
-                    Textures::Sprite sprite = resources.carSprites[BLACK_CARGO];
-                    if (car.loaded)
-                    {
-                        sprite = resources.carSprites[car.cargoType];
-                    }
-                    destination =
-                    {
-                        car.transform.worldPosition.x,
-                        car.transform.worldPosition.y,
-                        (float)sprite.texture->width,
-                        (float)sprite.texture->height
-                    };
                     DrawTexturePro
                     (
-                        *sprite.texture,
-                        sprite.source,
+                        *resources.trainSprite.texture,
+                        resources.trainSprite.source,
                         destination,
-                        { sprite.origin.x, sprite.origin.y},
-                        car.transform.rotation,
+                        { resources.trainSprite.origin.x, resources.trainSprite.origin.y },
+                        train.transform.rotation,
                         color
                     );
+                }
+
+                for (int j = 0; j < train.carCount; j++)
+                {
+                    Car& car = train.cars[j];
+                    if (car.transform.currentCell->hasCrossing &&
+                        abs(car.transform.entryPosition.x - car.transform.targetPosition.x) > 0)
+                    {
+                        // THE CAR IS MOVING HORIZONTALLY THROUGH A TUNNEL
+                        // dont draw the CAR
+                    }
+                    else
+                    {
+                        Textures::Sprite sprite = resources.carSprites[BLACK_CARGO];
+                        if (car.loaded)
+                        {
+                            sprite = resources.carSprites[car.cargoType];
+                        }
+                        destination =
+                        {
+                            car.transform.worldPosition.x,
+                            car.transform.worldPosition.y,
+                            (float)sprite.texture->width,
+                            (float)sprite.texture->height
+                        };
+                        DrawTexturePro
+                        (
+                            *sprite.texture,
+                            sprite.source,
+                            destination,
+                            { sprite.origin.x, sprite.origin.y},
+                            car.transform.rotation,
+                            color
+                        );
+                    }
                 }
             }
         }

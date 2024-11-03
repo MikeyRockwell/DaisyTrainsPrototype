@@ -6,8 +6,9 @@
 
 namespace Trains
 {
-    const i32 MAX_TRAINS = 64;
+    //const i32 MAX_TRAINS = 64;
     const i32 MAX_CARS = 64;
+    const float MIN_TRAIN_SPAWN_DISTANCE = 300.0f;
 
     enum Direction
     {
@@ -58,6 +59,7 @@ namespace Trains
     // The trail engine
     struct TrainEngine
     {
+        i32 index = -1;
         TrainTransform transform;
 
         float acceleration;
@@ -77,10 +79,9 @@ namespace Trains
     struct TrainState
     {
         Vector2 trainPlacementPosition;
-        i32 trainCount = 0;
-        TrainEngine trains[MAX_TRAINS];
-        
-        TrainEngine levelElevenTrains[4];
+        bool trainPlacementValid = false;
+        float trainAudioTimer = 0.0f;
+        float trainAudioLength = 5.794f;
     };
     extern TrainState state;
 
@@ -93,16 +94,11 @@ namespace Trains
     extern TrainResources resources;
 
     void Init  ();
-    void Update             (i32 level);
-    void UpdateTransform    (i32 level, TrainEngine& engine, TrainTransform& transform);
-    void UpdateCarTransform (i32 level, Car& car, TrainTransform& parentTransform, float speed);
+    void Update             ();
+    void UpdateTransform    (TrainEngine& engine, TrainTransform& transform);
+    void UpdateCarTransform (Car& car, TrainTransform& parentTransform, float speed);
     void EnterCell          (TrainTransform& transform);
-    void Draw               (i32 level);
+    void Draw               ();
 
-    inline void RemoveTrain(i32 index)
-    {
-        state.trains[index] = state.trains[state.trainCount - 1];
-        state.trainCount--;
-    }
-
+    void RemoveTrain(i32 index);
 }

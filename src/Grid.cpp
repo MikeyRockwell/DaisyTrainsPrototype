@@ -1,4 +1,5 @@
 #include "Grid.h"
+#include "UI.h"
 
 namespace Grid
 {
@@ -27,8 +28,38 @@ namespace Grid
         grid.groundSprite[4] = Textures::CreateSprite
         (texture, { 0,0,CELL_SIZE,CELL_SIZE }, { CELL_SIZE / 2, CELL_SIZE / 2 }, 0.0f, 1.0f, WHITE);
 
-        texture = Textures::Load("res/sprites/obstacle.png");
-        grid.obstacleSprite = Textures::CreateSprite
+        texture = Textures::Load("res/sprites/obstacle_1.png");
+        grid.obstacleSprites[0] = Textures::CreateSprite
+        (
+            texture,
+            { 0,0,CELL_SIZE,CELL_SIZE },
+            { CELL_SIZE / 2, CELL_SIZE / 2 },
+            0.0f,
+            1.0f,
+            WHITE
+        );
+        texture = Textures::Load("res/sprites/obstacle_2.png");
+        grid.obstacleSprites[1] = Textures::CreateSprite
+        (
+            texture,
+            { 0,0,CELL_SIZE,CELL_SIZE },
+            { CELL_SIZE / 2, CELL_SIZE / 2 },
+            0.0f,
+            1.0f,
+            WHITE
+        );
+        texture = Textures::Load("res/sprites/obstacle_3.png");
+        grid.obstacleSprites[2] = Textures::CreateSprite
+        (
+            texture,
+            { 0,0,CELL_SIZE,CELL_SIZE },
+            { CELL_SIZE / 2, CELL_SIZE / 2 },
+            0.0f,
+            1.0f,
+            WHITE
+        );
+        texture = Textures::Load("res/sprites/obstacle_4.png");
+        grid.obstacleSprites[3] = Textures::CreateSprite
         (
             texture,
             { 0,0,CELL_SIZE,CELL_SIZE },
@@ -49,7 +80,8 @@ namespace Grid
                     .initialized = 1,
                     .coordinate = coordinate,
                     .worldPosition = Vector2Add(GetWorldPosition(coordinate), grid.worldPosition),
-                    .groundSpriteIndex = GetRandomValue(0, 4),
+                    .groundSpriteIndex = GetRandomValue(0, GROUND_SPRITES-1),
+                    .obstacleSpriteIndex = GetRandomValue(0, OBSTACLE_SPRITES-1),
                 };
                 grid.cells[coordinate] = cell;
             }
@@ -74,7 +106,8 @@ namespace Grid
                     .initialized = 1,
                     .coordinate = coordinate,
                     .worldPosition = Vector2Add(GetWorldPosition(coordinate), grid.worldPosition),
-                    .groundSpriteIndex = GetRandomValue(0, 4),
+                    .groundSpriteIndex = GetRandomValue(0, GROUND_SPRITES-1),
+                    .obstacleSpriteIndex = GetRandomValue(0, OBSTACLE_SPRITES-1),
                 };
                 grid.cells[coordinate] = cell;
             }
@@ -100,7 +133,7 @@ namespace Grid
             {
                 DrawTexturePro
                 (
-                    *grid.obstacleSprite.texture,
+                    *grid.obstacleSprites[cell.obstacleSpriteIndex].texture,
                     { 0, 0, CELL_SIZE, CELL_SIZE },
                     rectangle,
                     { 0,0 },
@@ -118,6 +151,16 @@ namespace Grid
                     { 0,0 },
                     0.0f,
                     WHITE
+                );
+            }
+            
+            if (UI::state.buildType == UI::RAIL || UI::state.buildType == UI::MINE || UI::state.buildType == UI::STATION)
+            {
+                DrawRectangleLinesEx
+                (
+                    { rectangle.x, rectangle.y, rectangle.width, rectangle.height },
+                    1,
+                    PALETTE_BLACK
                 );
             }
         }

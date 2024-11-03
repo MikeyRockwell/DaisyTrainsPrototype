@@ -3,13 +3,14 @@
 
 namespace UI
 {
-    const i32 BUTTON_SIZE = 80;
+    const i32 BUTTON_SIZE = 128;
     const Color normalColor   = PALETTE_LIGHT_GRAY;
     const Color hoveredColor  = PALETTE_PURPLE;
     const Color selectedColor = PALETTE_ORANGE;
 
     enum BuildType
     {
+        //NONE, // THIS would need a texture to work..
         RAIL,
         TRAIN,
         REMOVE_TRAIN,

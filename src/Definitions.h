@@ -47,5 +47,3 @@ enum CargoType
     LIGHT_GRAY_CARGO,
     WHITE_CARGO
 };
-
-#define EMPTY_CARGO BLACK_CARGO

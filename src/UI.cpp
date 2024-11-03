@@ -19,44 +19,37 @@ namespace UI
             state.buttons[i].selected = false;
             state.buttons[i].type = (BuildType)i;
 
+            Texture* texture = nullptr;
+            Rectangle source = { 0,0,CELL_SIZE,CELL_SIZE };
+            Vector2 origin = { CELL_SIZE / 2, CELL_SIZE / 2 };
+
             switch (state.buttons[i].type)
             {
             case REMOVE_TRAIN:
             {
-                state.buttons[i].sprite = Trains::resources.removeTrain;
+                texture = Textures::Load("res/sprites/button_remove_train.png");
+                state.buttons[i].sprite = Textures::CreateSprite(texture, source, origin, 0.0f, 1.0f, WHITE);
             } break;
             case RAIL:
             {
-                state.buttons[i].sprite = Rail::uiState.railSpritesClockwise[0];
+                texture = Textures::Load("res/sprites/button_track.png");
+                state.buttons[i].sprite = Textures::CreateSprite(texture, source, origin, 0.0f, 1.0f, WHITE);
             } break;
             case TRAIN:
             {
-                state.buttons[i].sprite = Trains::resources.trainSprite;
+                texture = Textures::Load("res/sprites/button_train.png");
+                state.buttons[i].sprite = Textures::CreateSprite(texture, source, origin, 0.0f, 1.0f, WHITE);
             } break;
             case MINE:
             {
-                state.buttons[i].sprite = Textures::CreateSprite
-                (
-                    Mines::resources.mineTextures[YELLOW_CARGO],
-                    { 0,0,CELL_SIZE, CELL_SIZE },
-                    { CELL_SIZE / 2, CELL_SIZE / 2 },
-                    0.0f,
-                    1.0f,
-                    WHITE
-                );
+                texture = Textures::Load("res/sprites/button_mine.png");
+                state.buttons[i].sprite = Textures::CreateSprite(texture, source, origin, 0.0f, 1.0f, WHITE);
                 
             } break;
             case STATION:
             {
-                state.buttons[i].sprite = Textures::CreateSprite
-                (
-                    Mines::resources.stationTextures[PINK_CARGO],
-                    { 0,0,CELL_SIZE,CELL_SIZE },
-                    { CELL_SIZE / 2, CELL_SIZE / 2 },
-                    0.0f,
-                    1.0f,
-                    WHITE
-                );
+                texture = Textures::Load("res/sprites/button_station.png");
+                state.buttons[i].sprite = Textures::CreateSprite(texture, source, origin, 0.0f, 1.0f, WHITE);
             } break;
             }
 
@@ -67,7 +60,6 @@ namespace UI
     void Update()
     {
         Vector2 mouseScreenSpace = GetMousePosition();
-
         bool mouseOver = false;
         for (int i = 0; i < COUNT; i++)
         {
@@ -75,15 +67,6 @@ namespace UI
             mouseOver = mouseOver || state.buttons[i].hovered;
             if (state.buttons[i].hovered && IsMouseButtonPressed(0))
             {
-                if (state.buttons[i].type == REMOVE_TRAIN)
-                {
-                    if (Game::GetLevel().trainCount == 0)
-                    {
-                        Trains::RemoveTrain(Game::GetLevel().number);
-                        Game::GetLevel().trainCount++;
-                    }
-                }
-
                 state.buttons[i].selected = !state.buttons[i].selected;
                 state.buildType = state.buttons[i].type;
 
@@ -109,6 +92,17 @@ namespace UI
                 DrawText(level.helpText.c_str(), level.UIPosition.x, level.UIPosition.y, 20, level.helpTextColor);
             }
         }
+        Vector2 mousePosition = Game::state.mouseWorldPosition;
+        float size = 24.0f;
+        DrawTexturePro
+        (
+            *state.buttons[state.buildType].sprite.texture,
+            state.buttons[state.buildType].sprite.source,
+            { mousePosition.x, mousePosition.y, size, size },
+            { size / 2, size / 2 },
+            0.0f,
+            WHITE
+        );
     }
 
     void DrawScreenSpace()
@@ -132,29 +126,29 @@ namespace UI
             DrawRectangleLinesEx(button.rectangle, 2, PALETTE_WHITE);
             if (button.type == TRAIN)
             {
-                std::string trainCount = std::to_string(focusedLevel.trainCount);
-                DrawText(trainCount.c_str(), button.rectangle.x + 10, button.rectangle.y + 10, 35, PALETTE_WHITE);
+                std::string trainCount = std::to_string(focusedLevel.trainsAvailable);
+                DrawText(trainCount.c_str(), button.rectangle.x + 10, button.rectangle.y + 10, 35, PALETTE_ORANGE);
             }
             if (button.type == RAIL)
             {
                 std::string trackCount = std::to_string(focusedLevel.railCount);
-                DrawText(trackCount.c_str(), button.rectangle.x + 10, button.rectangle.y + 10, 35, PALETTE_WHITE);
+                DrawText(trackCount.c_str(), button.rectangle.x + 10, button.rectangle.y + 10, 35, PALETTE_ORANGE);
             }
             if (button.type == MINE)
             {
                 std::string mineCount = std::to_string(focusedLevel.mineCount);
-                DrawText(mineCount.c_str(), button.rectangle.x + 10, button.rectangle.y + 10, 35, PALETTE_WHITE);
+                DrawText(mineCount.c_str(), button.rectangle.x + 10, button.rectangle.y + 10, 35, PALETTE_ORANGE);
             }
             if (button.type == STATION)
             {
                 std::string stationCount = std::to_string(focusedLevel.stationCount);
-                DrawText(stationCount.c_str(), button.rectangle.x + 10, button.rectangle.y +10, 35, PALETTE_WHITE);
+                DrawText(stationCount.c_str(), button.rectangle.x + 10, button.rectangle.y +10, 35, PALETTE_ORANGE);
             }
 
         }
 
         // Draw the build type
-        const char* buildType = "NONE";
+        /*const char* buildType = "NONE";
         switch (state.buildType)
         {
         case REMOVE_TRAIN: buildType = "NONE"; break;
@@ -177,6 +171,6 @@ namespace UI
         }
         DrawText(railTypeText, 10, 120, 20, WHITE);
         const char* mouseOverUI = state.mouseOverUI ? "TRUE" : "FALSE";
-        DrawText(mouseOverUI, 10, 140, 20, WHITE);
+        DrawText(mouseOverUI, 10, 140, 20, WHITE);*/
     }
 }
