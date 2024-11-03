@@ -15,6 +15,17 @@ void GameCamera::Update(Camera& camera)
         camera.zoomTarget += ZOOM_INCREMENT * deltaTime * zoomSpeed;
         camera.target = Vector2Lerp(camera.target, GetWorldMousePosition(camera), deltaTime *2.0f);
     }
+    if (GetMouseWheelMove() < 0 && camera.zoomTarget != MIN_ZOOM)
+    {
+        camera.zoomTarget -= ZOOM_INCREMENT * deltaTime * zoomSpeed * 3;
+        camera.target = Vector2Lerp(camera.target, GetWorldMousePosition(camera), deltaTime * 2.0f);
+    }
+    if (GetMouseWheelMove() > 0 && camera.zoomTarget != MAX_ZOOM)
+    {
+        camera.zoomTarget += ZOOM_INCREMENT * deltaTime * zoomSpeed * 3;
+        camera.target = Vector2Lerp(camera.target, GetWorldMousePosition(camera), deltaTime * 2.0f);
+    }
+
     if (camera.zoomTarget < MIN_ZOOM)
     {
         camera.zoomTarget = MIN_ZOOM;

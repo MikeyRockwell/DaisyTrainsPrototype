@@ -22,24 +22,26 @@ namespace Mines
     };
 
     // FOR PICKUPS
-    struct Mine
-    {
-        CargoType cargoType;
+    //struct Mine
+    //{
+    //    CargoType cargoType;
 
-        Vector2Int coordinate;
-        Vector2 worldPosition;
+    //    Vector2Int coordinate;
+    //    Vector2 worldPosition;
 
-        Stack* stack;
-        
-        bool vertical = false;
-        Rail::RailType compatibleRailType;
+    //    Stack* stack;
+    //    
+    //    bool vertical = false;
+    //    Rail::RailType compatibleRailType;
 
-        Textures::Sprite sprite;
-    };
+    //    Textures::Sprite sprite;
+    //};
 
     // FOR DELIVERIES
     struct Station
     {
+        bool pickup = false;
+
         CargoType cargoType;
 
         Vector2Int coordinate;
@@ -77,7 +79,7 @@ namespace Mines
         bool buildableCell = false;
         bool flipped = false;
 
-        std::unordered_map<Vector2Int, Mine,      Vector2IntHash, Vector2IntEqual> mines;
+        //std::unordered_map<Vector2Int, Mine,      Vector2IntHash, Vector2IntEqual> mines;
         std::unordered_map<Vector2Int, Station,   Vector2IntHash, Vector2IntEqual> stations;
         std::unordered_map<Vector2Int, Stack,     Vector2IntHash, Vector2IntEqual> stacks;
 
@@ -100,7 +102,7 @@ namespace Mines
     extern Resources resources;
 
     void     Init();
-    Mine*    CreateMine     (i32 level, Grid::Cell* cell, i32 capacity, CargoType cargo, bool flipped);
+    //Mine*    CreateMine     (i32 level, Grid::Cell* cell, i32 capacity, CargoType cargo, bool flipped);
     Station* CreateStation  (i32 level, Grid::Cell* cell, CargoType cargo, bool flipped);
     Stack*   CreateStack    (Vector2Int coordinate, CargoType cargo, i32 capacity, i32 count);
     void     Update         (i32 level);

@@ -17,16 +17,14 @@ namespace Game
 
         // CAMERA INIT
         state.camera = GameCamera::Camera{};
-        state.camera.target = { (float)grid.width * CELL_SIZE / 2, (float)grid.height * CELL_SIZE / 2 };
-        state.camera.zoomTarget = 1.0f;
+        state.camera.target = { (float)grid.width * CELL_SIZE / 2, (float)grid.height * CELL_SIZE / 2 - 60 };
+        state.camera.zoomTarget = 1.65f;
         state.running = true;
 
         state.camera.rlCamera.offset = { (float)GetScreenWidth() / 2, (float)GetScreenHeight() / 2 };
         state.camera.rlCamera.target = state.camera.target;
         state.camera.rlCamera.rotation = 0.0f;
-        state.camera.rlCamera.zoom = 1.0f;
-
-       
+        state.camera.rlCamera.zoom = 1.65f;
     }
 
     void Update()
@@ -36,12 +34,13 @@ namespace Game
         // TODO: Remove??
         if (IsKeyPressed(KEY_EQUAL))
         {
-            state.clock.timeScale += 0.1f;
+            state.clock.timeScale += 0.3f;
         }
         if (IsKeyPressed(KEY_MINUS))
         {
-            state.clock.timeScale -= 0.1f;
+            state.clock.timeScale -= 0.3f;
         }
+        state.clock.timeScale = Clamp(state.clock.timeScale, 0.1f, 5.0f);
 
         Vector2 moveDirection = { 0, 0 };
         if (IsKeyDown(KEY_W))
@@ -172,6 +171,10 @@ namespace Game
             {
                 Color borderColor = state.focusedLevel == i ? PALETTE_ORANGE : PALETTE_LIGHT_GRAY;
                 DrawRectangleLinesEx(level.bounds, 4.0f / state.camera.rlCamera.zoom, borderColor);
+                if (UI::state.hints)
+                {
+                    DrawTextEx(gameFont, std::to_string(i).c_str(), { level.bounds.x, level.bounds.y - 20 }, fontSize, 0, PALETTE_LIGHT_GRAY);
+                }
             }
         }
     }
@@ -251,14 +254,34 @@ namespace Game
             level.unlockStacks.push_back({ false, 1, { 1, 4 } });
             level.number = 0;
             level.unlocked = true;
-            level.helpText = "Welcome to\nSky High Stacks!\n\nPlease transport the\npink cargo to the\nempty stack";
+            level.UIPosition = { -175 , 0 };
+            level.helpText = 
+R"(Welcome to
+Daisy Trains!
+
+You can place
+rail by clicking
+and dragging
+with the left
+mouse button.
+
+Place stations
+to pick up cargo.
+Click the station
+again to switch
+from pick up
+to drop off.
+
+
+Please transport
+the pink cargo here->
+)";
             level.mineCount = 1;
-            level.stationCount = 1;
+            level.stationCount = 2;
             level.trainsAvailable = 1;
             level.carCount = 8;
             level.railCount = 10;
             level.helpTextColor = PALETTE[PINK_CARGO];
-            level.UIPosition = { -250 , 0 };
         }
 
         if (level == 1)
@@ -274,7 +297,7 @@ namespace Game
              
             // Resources
             level.mineCount = 2;
-            level.stationCount = 2;
+            level.stationCount = 5;
             level.railCount = 16;
             level.trainsAvailable = 1;
             
@@ -287,6 +310,27 @@ namespace Game
             level.unlocked = true;
             level.unlockStacks.push_back({ false, 2, { 0, 10 } });
             level.unlockStacks.push_back({ false, 3, { 4, 6  } });
+
+            level.helpTextColor = PALETTE_YELLOW;
+            level.UIPosition = { level.bounds.x - 195, level.bounds.y };
+            level.helpText =
+R"(
+Great job!
+
+Now we need to
+pick up some
+yellow cargo.
+
+It's a good idea
+to make sure
+your train picks up
+and drops off
+in the right order.
+
+You can press "H"
+to turn hints on
+or off.
+)";
         }
 
         if (level == 2) // LEVEL 3 - 3 GRIDS DOWN
@@ -302,7 +346,7 @@ namespace Game
 
             // Resources
             level.mineCount = 2;
-            level.stationCount = 2;
+            level.stationCount = 5;
             level.railCount = 21;
             level.trainsAvailable = 1;
 
@@ -315,6 +359,33 @@ namespace Game
             level.unlocked = true;
             level.unlockStacks.push_back({ false, 4, pinkStackEmpty->coordinate });
             level.unlockStacks.push_back({ false, 5, orangeStackEmpty->coordinate });
+
+            level.helpTextColor = PALETTE_ORANGE;
+            level.UIPosition = { level.bounds.x - 195, level.bounds.y - 20};
+            level.helpText =
+                R"(
+In Daisy Trains,
+trains can only
+go in one direction.
+
+Unless it is a
+crossing - which
+can go any way.
+
+You can flip a track
+by pressing "F" when
+the mouse is over it.
+
+Once a train is on
+the track, you can't
+edit it. But you
+can remove the train
+and try again.
+
+Remove tracks with
+the right mouse
+button.
+)";
         }
 
         if (level == 3) // LEVEL 4 - 2 DOWN, 1 RIGHT
@@ -330,7 +401,7 @@ namespace Game
 
             // Resources
             level.mineCount = 4;
-            level.stationCount = 3;
+            level.stationCount = 8;
             level.railCount = 35;
             level.trainsAvailable = 1;
 
@@ -338,7 +409,9 @@ namespace Game
             state.grid.cells[{ 8, 7 }].hasObstacle = true;
 
             level.unlocked = true;
-            level.unlockStacks.push_back({ false, 9, blueStackEmpty->coordinate });
+            level.unlockStacks.push_back({ false, 9, pinkStackEmpty->coordinate });
+
+
         }
 
         if (level == 4) // 2 DOWN, 2 RIGHT
@@ -354,7 +427,7 @@ namespace Game
 
             // Resources
             level.mineCount = 3;
-            level.stationCount = 2;
+            level.stationCount = 7;
             level.railCount = 35;
             level.trainsAvailable = 1;
 
@@ -390,7 +463,7 @@ namespace Game
 
             // Resources
             level.mineCount = 3;
-            level.stationCount = 3;
+            level.stationCount = 8;
             level.railCount = 85;
             level.trainsAvailable = 2;
 
@@ -408,6 +481,24 @@ namespace Game
             // Unlocks
             level.unlocked = true;
             level.unlockStacks.push_back({ false, 7, orangeStackEmpty->coordinate });
+
+            level.helpTextColor = PALETTE_PURPLE;
+            level.UIPosition = { level.bounds.x - 195, level.bounds.y };
+            level.helpText =
+                R"(
+Some levels have
+more than one train.
+
+You can add more
+trains as long as
+they aren't too
+close together.
+
+It's recommended
+to pick up and
+drop off cargo in
+one line!
+)";
         }
 
         if (level == 6)
@@ -423,7 +514,7 @@ namespace Game
             
             // Resources
             level.mineCount = 3;
-            level.stationCount = 2;
+            level.stationCount = 7;
             level.railCount = 85;
             level.trainsAvailable = 2;
 
@@ -455,7 +546,7 @@ namespace Game
             
             // Resources
             level.mineCount = 2;
-            level.stationCount = 2;
+            level.stationCount = 6;
             level.railCount = 85;
             level.trainsAvailable = 2;
             
@@ -491,7 +582,7 @@ namespace Game
             
             // Resources
             level.mineCount = 4;
-            level.stationCount = 2;
+            level.stationCount = 9;
             level.railCount = 85;
             level.trainsAvailable = 2;
             
@@ -525,7 +616,7 @@ namespace Game
 
             // Resources
             level.mineCount = 4;
-            level.stationCount = 2;
+            level.stationCount = 8;
             level.railCount = 85;
             level.trainsAvailable = 4;
 
@@ -553,6 +644,11 @@ namespace Game
 
             // Unlocks
             level.unlockStacks.push_back({ false, 8, blueStackEmpty->coordinate });
+
+            level.helpTextColor = PALETTE_PURPLE;
+            level.UIPosition = { level.bounds.x + 20, level.bounds.y - 35 };
+            level.helpText =
+                R"(Sometimes it's a better idea to separate the lines for each cargo type.)";
         }
 
         if (level == 10)
@@ -572,7 +668,7 @@ namespace Game
 
             // Resources
             level.mineCount = 4;
-            level.stationCount = 4;
+            level.stationCount = 12;
             level.railCount = 185;
             level.trainsAvailable = 8;
             level.carCount = 16;
@@ -633,6 +729,33 @@ namespace Game
             state.grid.cells[{ 24,  21 }].hasObstacle = true;
             state.grid.cells[{ 28,  21 }].hasObstacle = true;
 
+            level.helpTextColor = PALETTE_YELLOW;
+            level.UIPosition = { level.bounds.x + level.bounds.width + 20, level.bounds.height / 2 - 300 };
+            level.helpText =
+R"(
+You've made it so far,
+but there's still more to do.
+
+Try to fill these four stacks
+with all the cargo in the world.
+
+If you can do that, you've
+completed Daisy Trains!
+
+Thanks for playing this submission
+to raylib NEXT game jam!
+
+We had a lot of fun and
+we hope you did too!
+
+
+CREDITS:
+Programming and Design:
+Mikey Rockwell
+
+Art:
+Louise Ashford
+)";
         }
     }
 

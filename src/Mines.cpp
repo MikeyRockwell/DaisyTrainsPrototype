@@ -49,7 +49,7 @@ namespace Mines
             { CELL_SIZE / 2, CELL_SIZE / 2 },
             0.0f, 1.0f, WHITE
         );
-        resources.stationGhostTexture = Textures::Load("res/sprites/station_ghost.png");
+        resources.stationGhostTexture = Textures::Load("res/sprites/station_ghost_2.png");
         resources.stationGhostSprite = Textures::CreateSprite
         (
             resources.stationGhostTexture,
@@ -77,33 +77,33 @@ namespace Mines
 
     }
 
-    Mine* CreateMine(i32 levelNumber, Grid::Cell* cell, i32 capacity, CargoType cargoType, bool vertical)
-    {
-        Vector2Int coordinate = cell->coordinate;
-        state.mines[coordinate] = {};
-        Mine& mine = state.mines[coordinate];
-        mine.coordinate = coordinate;
-        mine.vertical = vertical;
-        mine.compatibleRailType = vertical ? Rail::RailType::VERTICAL : Rail::RailType::HORIZONTAL;
-        mine.worldPosition = { (float)coordinate.x * CELL_SIZE, (float)coordinate.y * CELL_SIZE };
-        mine.cargoType = cargoType;
+    //Mine* CreateMine(i32 levelNumber, Grid::Cell* cell, i32 capacity, CargoType cargoType, bool vertical)
+    //{
+    //    Vector2Int coordinate = cell->coordinate;
+    //    state.mines[coordinate] = {};
+    //    Mine& mine = state.mines[coordinate];
+    //    mine.coordinate = coordinate;
+    //    mine.vertical = vertical;
+    //    mine.compatibleRailType = vertical ? Rail::RailType::VERTICAL : Rail::RailType::HORIZONTAL;
+    //    mine.worldPosition = { (float)coordinate.x * CELL_SIZE, (float)coordinate.y * CELL_SIZE };
+    //    mine.cargoType = cargoType;
 
-        cell->hasMine = true;
-        mine.sprite = Textures::CreateSprite
-        (
-            resources.mineTextures[cargoType],
-            { 0,0,CELL_SIZE, CELL_SIZE },
-            { CELL_SIZE / 2, CELL_SIZE / 2 },
-            0.0f,
-            1.0f,
-            PALETTE[mine.cargoType]
-        );
+    //    cell->hasMine = true;
+    //    mine.sprite = Textures::CreateSprite
+    //    (
+    //        resources.mineTextures[cargoType],
+    //        { 0,0,CELL_SIZE, CELL_SIZE },
+    //        { CELL_SIZE / 2, CELL_SIZE / 2 },
+    //        0.0f,
+    //        1.0f,
+    //        PALETTE[mine.cargoType]
+    //    );
 
-        // SFX
-        Audio::PlaySFXRandom(Audio::resources.place_mine.sound);
+    //    // SFX
+    //    Audio::PlaySFXRandom(Audio::resources.place_mine.sound);
 
-        return &mine;
-    }
+    //    return &mine;
+    //}
 
     Station* CreateStation(i32 level, Grid::Cell* cell, CargoType cargo, bool flipped)
     {
@@ -158,7 +158,7 @@ namespace Mines
             state.flipped = !state.flipped;
         }*/
 
-        if (UI::state.buildType == UI::BuildType::MINE && !UI::state.mouseOverUI)
+        /*if (UI::state.buildType == UI::BuildType::MINE && !UI::state.mouseOverUI)
         {
             if (IsMineCompatible(cell, state.flipped))
             {
@@ -201,33 +201,33 @@ namespace Mines
                 if (cell->railType == -1) cell->buildable = true;
                 focusedLevel.mineCount++;
             }
-        }
+        }*/
 
         if (UI::state.buildType == UI::BuildType::STATION && !UI::state.mouseOverUI)
         {
-            if (IsMineCompatible(cell, state.flipped))
+            Stack* stack = nullptr;
+            for (int x = -1; x < 2; x++)
             {
-                Stack* stack = nullptr;
-                for (int x = -1; x < 2; x++)
+                for (int y = -1; y < 2; y++)
                 {
-                    for (int y = -1; y < 2; y++)
+                    if (x == 0 && y == 0) continue;
+                    if (x == -1 && y == -1) continue;
+                    if (x == 1 && y == 1) continue;
+                    if (x == -1 && y == 1) continue;
+                    if (x == 1 && y == -1) continue;
+                    Vector2Int coordinate = { cell->coordinate.x + x, cell->coordinate.y + y };
+                    if (state.stacks.find(coordinate) != state.stacks.end())
                     {
-                        if (x == 0 && y == 0) continue;
-                        if (x == -1 && y == -1) continue;
-                        if (x == 1 && y == 1) continue;
-                        if (x == -1 && y == 1) continue;
-                        if (x == 1 && y == -1) continue;
-                        Vector2Int coordinate = { cell->coordinate.x + x, cell->coordinate.y + y };
-                        if (state.stacks.find(coordinate) != state.stacks.end())
-                        {
-                            state.flipped = x == 0 ? false : true;
-                            stack = &state.stacks[coordinate];
-                            state.buildableCell = true;
-                            state.adjacentStack = stack;
-                            break;
-                        }
+                        state.flipped = x == 0 ? false : true;
+                        stack = &state.stacks[coordinate];
+                        state.buildableCell = true;
+                        state.adjacentStack = stack;
+                        break;
                     }
                 }
+            }
+            if (IsMineCompatible(cell, state.flipped))
+            {
                 if (IsMouseButtonPressed(0) && stack != nullptr && focusedLevel.stationCount > 0)
                 {
                     Station* station = CreateStation(level, cell, stack->cargoType, state.flipped);
@@ -241,8 +241,16 @@ namespace Mines
             {
                 state.stations.erase(cell->coordinate);
                 cell->hasStation = false;
-                if (cell->railType == -1) cell->buildable = true;
+                //if (cell->railType == -1) cell->buildable = true;
                 focusedLevel.stationCount++;
+            }
+        }
+        if (UI::state.buildType == UI::BuildType::STATION && !UI::state.mouseOverUI)
+        {
+            if (cell->hasStation && IsMouseButtonPressed(0))
+            {
+                Station* station = &state.stations[cell->coordinate];
+                station->pickup = !station->pickup;
             }
         }
     }
@@ -257,14 +265,14 @@ namespace Mines
         {
             return false;
         }
-        if (cell->hasMine)
+        /*if (cell->hasMine)
         {
             Mine* mine = &state.mines[cell->coordinate];
             if (mine->compatibleRailType != Rail::uiState.selectedType)
             {
                 return false;
             }
-        }
+        }*/
         if (cell->hasStation)
         {
             Station* station = &state.stations[cell->coordinate];
@@ -329,7 +337,7 @@ namespace Mines
 
     void Draw(i32 level)
     {
-        // DRAW MINES
+        // DRAW STATIONS
         for (auto& [coordinate, station] : state.stations)
         {
             Rectangle destination =
@@ -339,9 +347,11 @@ namespace Mines
                 CELL_SIZE,
                 CELL_SIZE
             };
+
+            Texture* texture = station.pickup ? resources.mineTextures[station.cargoType] : resources.stationTextures[station.cargoType];
             DrawTexturePro
             (
-                *station.sprite.texture,
+                *texture,
                 station.sprite.source,
                 destination,
                 { 0, 0 },
@@ -355,7 +365,7 @@ namespace Mines
             }*/
         }
         // DRAW STATIONS
-        for (auto& [coordinate, mine] : state.mines)
+        /*for (auto& [coordinate, mine] : state.mines)
         {
             Rectangle destination =
             {
@@ -380,7 +390,7 @@ namespace Mines
                 CELL_SIZE,
                 CELL_SIZE
             };
-        }
+        }*/
 
         // DRAW STACKS
         for (auto& [coordinate, stack] : state.stacks)
@@ -392,7 +402,7 @@ namespace Mines
         Vector2 mouseWorldPosition = Game::state.mouseWorldPosition;
         Grid::Cell* cell = Game::state.grid.GetCellAtWorldPosition(mouseWorldPosition);
 
-        if (UI::state.buildType == UI::BuildType::MINE)
+        /*if (UI::state.buildType == UI::BuildType::MINE)
         {
             if (cell->initialized && !cell->hasMine && cell->buildable)
             {
@@ -414,11 +424,11 @@ namespace Mines
                     ghostColor
                 );
             }
-        }
+        }*/
 
         if (UI::state.buildType == UI::BuildType::STATION)
         {
-            if (cell->initialized && !cell->hasStation && cell->buildable)
+            if (cell->initialized && !cell->hasStation)
             {
                 Color ghostColor = state.buildableCell ? PALETTE[state.adjacentStack->cargoType] : PALETTE_BLACK;
                 Rectangle bounds =

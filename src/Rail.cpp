@@ -303,7 +303,7 @@ namespace Rail
         /*=========================================================
             DELETE RAIL SEGMENT
         =========================================================*/
-        if (IsMouseButtonDown(1) && !Game::GetLevel().trainDeployed)
+        if (IsMouseButtonDown(1) && !Game::GetLevel().trainDeployed && UI::state.buildType == UI::RAIL)
         {
             if (cell->railType != -1 && cell->railType != CROSSING)
             {

@@ -82,7 +82,7 @@ void UpdateAndDraw()
 	UI::DrawWorldSpace();
 
 	EndMode2D();
-	DrawFPS(20, 20);
+	//DrawFPS(20, 20);
 	UI::DrawScreenSpace();
 
 	EndDrawing();

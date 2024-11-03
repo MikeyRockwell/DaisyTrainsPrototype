@@ -104,13 +104,14 @@ namespace Trains
         {
             TrainEngine& train = Game::GetLevel().trains[i];
             float distance = Vector2Distance(train.transform.worldPosition, Game::state.camera.target);
-            distance *= 2.5;
+            distance *= 1.9;
             distance /= (Game::state.camera.rlCamera.zoom * 0.5);
             float volume = 1.0f - distance / 1000.0f;
             if (volume < 0.0f)
             {
                 volume = 0.0f;
             }
+            volume *= 3.5f;
             SetSoundVolume(Audio::resources.train_running.sound, volume);
             if (!IsSoundPlaying(Audio::resources.train_running.sound))
             {
@@ -157,6 +158,7 @@ namespace Trains
                     train.transform.worldPosition = state.trainPlacementPosition;
                     train.transform.currentCell = cell;
                     train.acceleration = 50.0f;
+                    train.transform.speed = 0.0f;
                     train.maxSpeed = 170.0f;
 
                     train.transform.entryPosition  = train.transform.worldPosition;
@@ -180,6 +182,7 @@ namespace Trains
                         car.transform.distanceToNextCell = train.transform.distanceToNextCell;
                         car.transform.distanceTravelled = 0.0f;
                         car.transform.nextCell = train.transform.nextCell;
+                        car.transform.speed = train.transform.speed;
                     }
 
                     Game::GetLevel().trainsAvailable--;
@@ -231,7 +234,7 @@ namespace Trains
 
                     // LOADING AND UNLOADING
                     Grid::Cell* cell = grid.GetCellAtWorldPosition(car.transform.worldPosition);
-                    if (cell->hasMine && !car.loaded)
+                    /*if (cell->hasMine && !car.loaded)
                     {
                         Mines::Mine* mine = &Mines::state.mines[cell->coordinate];
                         if (mine->stack->count > 0)
@@ -241,16 +244,27 @@ namespace Trains
                             car.loaded = true;
                             car.cargoType = mine->cargoType;
                         }
-                    }
+                    }*/
 
                     // Unloading at STATION
-                    if (cell->hasStation && car.loaded)
+                    //if (cell->hasStation && car.loaded)
+                    if (cell->hasStation)
                     {
                         Mines::Station* station = &Mines::state.stations[cell->coordinate];
-                        if (station->cargoType == car.cargoType && station->stack->count != station->stack->capacity)
+                        if (!car.loaded && station->pickup && station->stack->count > 0)
                         {
-                            station->stack->count++;
-                            car.loaded = false;
+                            i32 amount = 1;
+                            station->stack->count -= amount;
+                            car.loaded = true;
+                            car.cargoType = station->cargoType;
+                        }
+                        else if (car.loaded && !station->pickup)
+                        {
+                            if (station->cargoType == car.cargoType && station->stack->count != station->stack->capacity)
+                            {
+                                station->stack->count++;
+                                car.loaded = false;
+                            }
                         }
                     }
                 }
@@ -330,9 +344,20 @@ namespace Trains
         else
         { 
             // Update the distance travelled
-            transform.distanceTravelled += speed * Game::state.clock.deltaTime;
+            transform.distanceTravelled += (speed * Game::state.clock.deltaTime);
             transform.tValue = transform.distanceTravelled / transform.distanceToNextCell;
         }
+
+        if (Vector2Distance(transform.worldPosition, parentTransform.worldPosition) > 50.0f)
+        {
+            transform.currentCell = parentTransform.currentCell;
+            transform.entryPosition = parentTransform.entryPosition;
+            transform.targetPosition = parentTransform.targetPosition;
+            transform.distanceToNextCell = parentTransform.distanceToNextCell;
+            transform.distanceTravelled = parentTransform.distanceTravelled;
+            transform.nextCell = parentTransform.nextCell;
+        }
+
         transform.tValue = Clamp(transform.tValue, 0.0f, 1.0f);
 
         Vector2 nextPosition = Vector2Lerp(transform.entryPosition, transform.targetPosition, transform.tValue);

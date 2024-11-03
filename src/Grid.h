@@ -8,7 +8,7 @@
 namespace Grid
 {
     const i32 GROUND_SPRITES = 5;
-    const i32 OBSTACLE_SPRITES = 4;
+    const i32 OBSTACLE_SPRITES = 3;
 
     struct Cell
     {

@@ -7,6 +7,9 @@
 #include "Vector2D.h"
 #include "Textures.h"
 
+const i32 fontSize = 32;
+extern Font gameFont;
+
 #include <unordered_map>
 #include <string>
 #include <map>

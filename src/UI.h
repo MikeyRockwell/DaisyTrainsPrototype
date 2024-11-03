@@ -3,7 +3,7 @@
 
 namespace UI
 {
-    const i32 BUTTON_SIZE = 128;
+    const i32 BUTTON_SIZE = 100;
     const Color normalColor   = PALETTE_LIGHT_GRAY;
     const Color hoveredColor  = PALETTE_PURPLE;
     const Color selectedColor = PALETTE_ORANGE;
@@ -13,9 +13,8 @@ namespace UI
         //NONE, // THIS would need a texture to work..
         RAIL,
         TRAIN,
-        REMOVE_TRAIN,
-        MINE,
         STATION,
+        REMOVE_TRAIN,
         COUNT
     };
 
@@ -30,9 +29,11 @@ namespace UI
 
     struct State
     {
+        bool hints = true;
         bool mouseOverUI = false;
         BuildType buildType;
         Button buttons[COUNT];
+        Textures::Sprite logo;
     };
     extern State state;
 

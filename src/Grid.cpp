@@ -38,7 +38,7 @@ namespace Grid
             1.0f,
             WHITE
         );
-        texture = Textures::Load("res/sprites/obstacle_2.png");
+        texture = Textures::Load("res/sprites/obstacle_3.png");
         grid.obstacleSprites[1] = Textures::CreateSprite
         (
             texture,
@@ -48,7 +48,7 @@ namespace Grid
             1.0f,
             WHITE
         );
-        texture = Textures::Load("res/sprites/obstacle_3.png");
+        texture = Textures::Load("res/sprites/obstacle_4.png");
         grid.obstacleSprites[2] = Textures::CreateSprite
         (
             texture,
@@ -58,7 +58,7 @@ namespace Grid
             1.0f,
             WHITE
         );
-        texture = Textures::Load("res/sprites/obstacle_4.png");
+        /*texture = Textures::Load("res/sprites/obstacle_4.png");
         grid.obstacleSprites[3] = Textures::CreateSprite
         (
             texture,
@@ -67,7 +67,7 @@ namespace Grid
             0.0f,
             1.0f,
             WHITE
-        );
+        );*/
 
         for (int y = 0; y < grid.height; y++)
         {
@@ -154,7 +154,7 @@ namespace Grid
                 );
             }
             
-            if (UI::state.buildType == UI::RAIL || UI::state.buildType == UI::MINE || UI::state.buildType == UI::STATION)
+            if (UI::state.buildType == UI::RAIL || UI::state.buildType == UI::STATION)
             {
                 DrawRectangleLinesEx
                 (

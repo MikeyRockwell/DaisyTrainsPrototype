@@ -10,11 +10,16 @@ namespace UI
     
     void Init()
     {
-        i32 xPos = (GetScreenWidth() / 2) - (COUNT * BUTTON_SIZE) / 2;
+        gameFont = LoadFontEx("res/fonts/font_02.otf", 100, NULL, 0);
+
+        state.logo = Textures::CreateSprite(Textures::Load("res/sprites/logo.png"), { 0,0,256,128 }, { 128,64 }, 0.0f, 1.0f, WHITE);
+
+        i32 xPos = 0;
+        i32 yPos = (GetScreenHeight() / 2) - (COUNT * BUTTON_SIZE) / 2;
         
         for (i32 i = 0; i < COUNT; i++)
         {
-            state.buttons[i].rectangle = { (float)xPos, 0, (float)BUTTON_SIZE, (float)BUTTON_SIZE};
+            state.buttons[i].rectangle = { (float)xPos, (float)yPos, (float)BUTTON_SIZE, (float)BUTTON_SIZE };
             state.buttons[i].hovered = false;
             state.buttons[i].selected = false;
             state.buttons[i].type = (BuildType)i;
@@ -40,20 +45,20 @@ namespace UI
                 texture = Textures::Load("res/sprites/button_train.png");
                 state.buttons[i].sprite = Textures::CreateSprite(texture, source, origin, 0.0f, 1.0f, WHITE);
             } break;
-            case MINE:
+            /*case MINE:
             {
                 texture = Textures::Load("res/sprites/button_mine.png");
                 state.buttons[i].sprite = Textures::CreateSprite(texture, source, origin, 0.0f, 1.0f, WHITE);
                 
-            } break;
+            } break;*/
             case STATION:
             {
-                texture = Textures::Load("res/sprites/button_station.png");
+                texture = Textures::Load("res/sprites/button_mine.png");
                 state.buttons[i].sprite = Textures::CreateSprite(texture, source, origin, 0.0f, 1.0f, WHITE);
             } break;
             }
 
-            xPos += BUTTON_SIZE;
+            yPos += BUTTON_SIZE;
         }
     }
 
@@ -80,16 +85,36 @@ namespace UI
             }
         }
         state.mouseOverUI = mouseOver;
+
+        if (IsKeyPressed(KEY_H))
+        {
+            state.hints = !state.hints;
+        }
     }
 
     void DrawWorldSpace()
     {
-        for (int i = 0; i < Game::LEVEL_COUNT; i++)
+        // LOGO
+        DrawTexturePro
+        (
+            *state.logo.texture,
+            state.logo.source,
+            { -32, -192, state.logo.source.width, state.logo.source.height},
+            { 0, 0 },
+            0.0f,
+            WHITE
+        );
+        DrawRectangleLinesEx({ -32, -192, state.logo.source.width, state.logo.source.height }, 4.0f / Game::state.camera.rlCamera.zoom, PALETTE_LIGHT_GRAY);
+
+        if (state.hints)
         {
-            Game::Level& level = Game::state.levels[i];
-            if (level.unlocked)
+            for (int i = 0; i < Game::LEVEL_COUNT; i++)
             {
-                DrawText(level.helpText.c_str(), level.UIPosition.x, level.UIPosition.y, 20, level.helpTextColor);
+                Game::Level& level = Game::state.levels[i];
+                if (level.unlocked)
+                {
+                    DrawTextEx(gameFont, level.helpText.c_str(), { level.UIPosition.x, level.UIPosition.y }, fontSize, 0, level.helpTextColor);
+                }
             }
         }
         Vector2 mousePosition = Game::state.mouseWorldPosition;
@@ -123,26 +148,32 @@ namespace UI
                 0.0f,
                 WHITE
             );
-            DrawRectangleLinesEx(button.rectangle, 2, PALETTE_WHITE);
+            //DrawRectangleLinesEx(button.rectangle, 2, PALETTE_WHITE);
+            float size = 20.0f;
+            float textSize = 20.0f;
+            float textX = 6.0f;
             if (button.type == TRAIN)
             {
+                DrawCircle(button.rectangle.x + size / 1.5f, button.rectangle.y + size, size, PALETTE_ORANGE);
                 std::string trainCount = std::to_string(focusedLevel.trainsAvailable);
-                DrawText(trainCount.c_str(), button.rectangle.x + 10, button.rectangle.y + 10, 35, PALETTE_ORANGE);
+                DrawText(trainCount.c_str(), button.rectangle.x + textX, button.rectangle.y + 10, textSize, PALETTE_WHITE);
             }
             if (button.type == RAIL)
             {
+                DrawCircle(button.rectangle.x + size / 1.5f, button.rectangle.y + size, size, PALETTE_ORANGE);
                 std::string trackCount = std::to_string(focusedLevel.railCount);
-                DrawText(trackCount.c_str(), button.rectangle.x + 10, button.rectangle.y + 10, 35, PALETTE_ORANGE);
+                DrawText(trackCount.c_str(), button.rectangle.x + textX, button.rectangle.y + 10, textSize, PALETTE_WHITE);
             }
-            if (button.type == MINE)
+            /*if (button.type == MINE)
             {
                 std::string mineCount = std::to_string(focusedLevel.mineCount);
-                DrawText(mineCount.c_str(), button.rectangle.x + 10, button.rectangle.y + 10, 35, PALETTE_ORANGE);
-            }
+                DrawText(mineCount.c_str(), button.rectangle.x + 10, button.rectangle.y + 10, 25, PALETTE_ORANGE);
+            }*/
             if (button.type == STATION)
             {
+                DrawCircle(button.rectangle.x + size / 1.5f, button.rectangle.y + size, size, PALETTE_ORANGE);
                 std::string stationCount = std::to_string(focusedLevel.stationCount);
-                DrawText(stationCount.c_str(), button.rectangle.x + 10, button.rectangle.y +10, 35, PALETTE_ORANGE);
+                DrawText(stationCount.c_str(), button.rectangle.x + textX, button.rectangle.y +10, textSize, PALETTE_WHITE);
             }
 
         }
